@@ -188,5 +188,7 @@ class LexicalEditorElement extends HTMLElement {
   }
 }
 
-// Register the custom element
-customElements.define('lexical-editor', LexicalEditorElement);
+// Register the custom element (only if not already registered)
+if (!customElements.get('lexical-editor')) {
+  customElements.define('lexical-editor', LexicalEditorElement);
+}
