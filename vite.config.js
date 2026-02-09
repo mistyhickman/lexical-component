@@ -1,0 +1,20 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    lib: {
+      entry: './src/lexical-editor-component.jsx',
+      name: 'LexicalEditor',
+      fileName: 'lexical-editor',
+      formats: ['iife']
+    },
+    rollupOptions: {
+      output: {
+        // Ensure everything is bundled into a single file
+        inlineDynamicImports: true,
+      }
+    }
+  }
+});
