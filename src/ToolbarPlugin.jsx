@@ -23,6 +23,7 @@ import {
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 import { $isParentElementRTL, $wrapNodes, $isAtNodeEnd } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
+import { $generateHtmlFromNodes } from '@lexical/html';
 import { 
   $createHeadingNode,
   $createQuoteNode,
@@ -288,22 +289,36 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   const toggleSource = () => {
     if (!showSource) {
       editor.getEditorState().read(() => {
-        const root = $getRoot();
-        const htmlString = root.getTextContent(); // Simplified - would need proper HTML serialization
+        const htmlString = $generateHtmlFromNodes(editor, null);
         setSourceHTML(htmlString);
         setShowSource(true);
       });
     } else {
-      // Parse source back into editor
-      editor.update(() => {
-        const root = $getRoot();
-        root.clear();
-        const paragraph = $createParagraphNode();
-        paragraph.append($createTextNode(sourceHTML));
-        root.append(paragraph);
-      });
       setShowSource(false);
     }
+  };
+
+  // Update source HTML when editing in source mode
+  const handleSourceChange = (e) => {
+    setSourceHTML(e.target.value);
+  };
+
+  // Apply source changes back to editor
+  const applySourceChanges = () => {
+    editor.update(() => {
+      const root = $getRoot();
+      root.clear();
+
+      // Parse HTML and insert as text for now (proper HTML parsing would be better)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(sourceHTML, 'text/html');
+      const textContent = doc.body.textContent || '';
+
+      const paragraph = $createParagraphNode();
+      paragraph.append($createTextNode(textContent));
+      root.append(paragraph);
+    });
+    setShowSource(false);
   };
 
   // Font case
@@ -399,6 +414,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   };
 
   return (
+    <>
     <div className="lexical-toolbar" style={toolbarStyle}>
       {tools.includes('spellcheck') && spellCheckCallback && (
         <button
@@ -708,5 +724,48 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         </button>
       )}
     </div>
+
+    {showSource && (
+      <div style={{ padding: '10px', backgroundColor: '#f9f9f9', borderTop: '1px solid #ccc' }}>
+        <div style={{ marginBottom: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>HTML Source:</span>
+          <button
+            onClick={applySourceChanges}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+            }}
+            title="Apply Changes"
+          >
+            Apply Changes
+          </button>
+          <button
+            onClick={toggleSource}
+            style={buttonStyle}
+            title="Cancel"
+          >
+            Cancel
+          </button>
+        </div>
+        <textarea
+          value={sourceHTML}
+          onChange={handleSourceChange}
+          style={{
+            width: '100%',
+            minHeight: '300px',
+            fontFamily: 'monospace',
+            fontSize: '13px',
+            padding: '10px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            resize: 'vertical',
+          }}
+          spellCheck={false}
+        />
+      </div>
+    )}
+    </>
   );
 }
