@@ -4,6 +4,8 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
+import { ListPlugin } from '@lexical/react/LexicalListPlugin';
+import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListItemNode, ListNode } from '@lexical/list';
@@ -109,6 +111,9 @@ export default function LexicalEditor({
         ul: 'lexical-ul',
         ol: 'lexical-ol',
         listitem: 'lexical-listitem',
+        nested: {
+          listitem: 'lexical-nested-listitem',
+        },
       },
       link: 'lexical-link',
       text: {
@@ -117,6 +122,8 @@ export default function LexicalEditor({
         underline: 'lexical-underline',
         strikethrough: 'lexical-strikethrough',
         code: 'lexical-code',
+        subscript: 'lexical-subscript',
+        superscript: 'lexical-superscript',
       },
     },
     onError: (error) => {
@@ -173,6 +180,8 @@ export default function LexicalEditor({
               ErrorBoundary={LexicalErrorBoundary}
             />
             <HistoryPlugin />
+            <ListPlugin />
+            <TabIndentationPlugin />
             <AutoFocusPlugin />
             <LoadContentPlugin documents={documents} />
             <EditablePlugin editable={editable} />
