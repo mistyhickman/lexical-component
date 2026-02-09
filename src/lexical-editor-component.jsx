@@ -95,7 +95,6 @@ class LexicalEditorElement extends HTMLElement {
           color: #999;
           pointer-events: none;
           user-select: none;
-          opacity: 1;
         }
         .lexical-paragraph {
           margin: 0 0 10px 0;
@@ -188,7 +187,5 @@ class LexicalEditorElement extends HTMLElement {
   }
 }
 
-// Register the custom element (only if not already registered)
-if (!customElements.get('lexical-editor')) {
-  customElements.define('lexical-editor', LexicalEditorElement);
-}
+// Register the custom element
+customElements.define('lexical-editor', LexicalEditorElement);
