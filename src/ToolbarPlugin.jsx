@@ -29,10 +29,6 @@ import {
   HeadingTagType 
 } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
-import {
-  INSERT_HORIZONTAL_RULE_COMMAND,
-  $createHorizontalRuleNode,
-} from '@lexical/react/LexicalHorizontalRuleNode';
 
 const LowPriority = 1;
 
@@ -126,6 +122,37 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
   const formatCode = () => {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code');
+  };
+
+  // Remove all formatting
+  const removeFormat = () => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        // Remove all text formats
+        const formats = ['bold', 'italic', 'underline', 'strikethrough', 'code', 'subscript', 'superscript'];
+        formats.forEach(format => {
+          if (selection.hasFormat(format)) {
+            selection.formatText(format);
+          }
+        });
+        
+        // Get the selected text content
+        const selectedText = selection.getTextContent();
+        
+        // Remove any links
+        const nodes = selection.getNodes();
+        nodes.forEach(node => {
+          const parent = node.getParent();
+          if ($isLinkNode(parent)) {
+            editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+          }
+        });
+        
+        // Reset alignment to left
+        editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'left');
+      }
+    });
   };
 
   // Alignment commands
@@ -486,6 +513,19 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
 
       {(tools.includes('bold') || tools.includes('italic') || tools.includes('underline')) && <div style={separatorStyle}></div>}
+
+      {tools.includes('removeformat') && (
+        <button
+          onClick={removeFormat}
+          style={buttonStyle}
+          title="Remove Formatting"
+          aria-label="Remove Formatting"
+        >
+          ✕
+        </button>
+      )}
+
+      {tools.includes('removeformat') && <div style={separatorStyle}></div>}
 
       {tools.includes('alignleft') && (
         <button

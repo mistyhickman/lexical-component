@@ -12,6 +12,7 @@ All toolbar items are passed as a space-delimited string in the `toollist` param
 - **superscript** - Superscript formatting (X²)
 - **fontsize** - Font size dropdown (10px to 36px)
 - **fontcase** - Change case (UPPERCASE, lowercase, Title Case)
+- **removeformat** - Remove all formatting from selected text
 
 ### Alignment
 - **alignleft** - Align left
@@ -47,35 +48,35 @@ All toolbar items are passed as a space-delimited string in the `toollist` param
 
 ### Minimal Toolbar
 ```html
-<lexical-editor 
+<cf_lexicaleditor 
     fieldname="simple"
     toollist="bold italic undo redo">
 ```
 
 ### Standard Toolbar
 ```html
-<lexical-editor
+<cf_lexicaleditor 
     fieldname="standard"
-    toollist="bold italic underline bullist numlist alignleft aligncenter undo redo">
+    toollist="bold italic underline removeformat bullist numlist alignleft aligncenter undo redo">
 ```
 
 ### Complete Toolbar
 ```html
-<lexical-editor
+<cf_lexicaleditor 
     fieldname="complete"
-    toollist="spellcheck undo redo bold italic underline subscript superscript alignleft aligncenter alignright alignjustify bullist numlist outdent indent copy cut paste pasteword fontsize fontcase table footnote horizontalrule maximize source">
+    toollist="spellcheck undo redo bold italic underline subscript superscript removeformat alignleft aligncenter alignright alignjustify bullist numlist outdent indent copy cut paste pasteword fontsize fontcase table footnote horizontalrule maximize source">
 ```
 
-### Writer's Toolbar
+### Writer's Toolbar (Recommended)
 ```html
-<lexical-editor
+<cf_lexicaleditor 
     fieldname="writer"
     toollist="bold italic underline bullist numlist alignleft aligncenter alignright table footnote horizontalrule maximize undo redo">
 ```
 
 ### Technical/Scientific Toolbar
 ```html
-<lexical-editor
+<cf_lexicaleditor 
     fieldname="technical"
     toollist="bold italic underline subscript superscript fontsize table footnote undo redo">
 ```
@@ -130,7 +131,7 @@ function mySpellCheck(arg1, arg2) {
 }
 </script>
 
-<lexical-editor
+<cf_lexicaleditor 
     fieldname="editor"
     toollist="spellcheck bold italic undo redo"
     spellcheckfunction="mySpellCheck"
@@ -139,14 +140,19 @@ function mySpellCheck(arg1, arg2) {
 
 ## Recommended Toolbar Combinations
 
+### Blog/Article Editor
+```
+bold italic underline removeformat bullist numlist alignleft aligncenter alignright horizontalrule maximize undo redo
+```
+
 ### Email Editor
 ```
-bold italic underline bullist numlist undo redo
+bold italic underline removeformat bullist numlist undo redo
 ```
 
 ### Documentation Editor
 ```
-bold italic underline subscript superscript bullist numlist table footnote horizontalrule source undo redo
+bold italic underline subscript superscript removeformat bullist numlist table footnote horizontalrule source undo redo
 ```
 
 ### Form Comment Field
@@ -223,7 +229,7 @@ After updating the ToolbarPlugin.jsx file:
 To test a specific tool, create a simple test page:
 
 ```html
-<lexical-editor 
+<cf_lexicaleditor 
     fieldname="test"
     toollist="bold">
 <script src="/js/lexical-editor.iife.js"></script>
