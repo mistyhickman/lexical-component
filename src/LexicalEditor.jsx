@@ -173,7 +173,14 @@ export default function LexicalEditor({
                 </div>
               }
               placeholder={
-                <div className="lexical-placeholder">
+                <div className="lexical-placeholder" style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  color: '#999',
+                  pointerEvents: 'none',
+                  userSelect: 'none'
+                }}>
                   Enter some text...
                 </div>
               }

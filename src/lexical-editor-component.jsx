@@ -74,8 +74,19 @@ class LexicalEditorElement extends HTMLElement {
           border-radius: 4px;
           overflow: hidden;
         }
+        .lexical-editor-inner {
+          position: relative;
+        }
+        .lexical-editor-scroller {
+          position: relative;
+          overflow: auto;
+        }
+        .lexical-editor {
+          position: relative;
+        }
         .lexical-content-editable {
           outline: none;
+          position: relative;
         }
         .lexical-placeholder {
           position: absolute;
@@ -83,6 +94,8 @@ class LexicalEditorElement extends HTMLElement {
           left: 10px;
           color: #999;
           pointer-events: none;
+          user-select: none;
+          opacity: 1;
         }
         .lexical-paragraph {
           margin: 0 0 10px 0;
