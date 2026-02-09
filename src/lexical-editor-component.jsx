@@ -106,8 +106,32 @@ class LexicalEditorElement extends HTMLElement {
           margin: 0 0 10px 0;
           padding-left: 20px;
         }
+        .lexical-ul {
+          list-style-type: disc;
+        }
+        .lexical-ol {
+          list-style-type: decimal;
+        }
         .lexical-listitem {
           margin: 0 0 5px 0;
+        }
+        .lexical-nested-listitem {
+          list-style-type: none;
+        }
+        .lexical-nested-listitem:before {
+          content: '';
+        }
+        ul.lexical-ul ul.lexical-ul {
+          list-style-type: circle;
+        }
+        ul.lexical-ul ul.lexical-ul ul.lexical-ul {
+          list-style-type: square;
+        }
+        ol.lexical-ol ol.lexical-ol {
+          list-style-type: lower-alpha;
+        }
+        ol.lexical-ol ol.lexical-ol ol.lexical-ol {
+          list-style-type: lower-roman;
         }
         .lexical-link {
           color: #0066cc;
@@ -130,6 +154,14 @@ class LexicalEditorElement extends HTMLElement {
           padding: 2px 4px;
           border-radius: 3px;
           font-family: monospace;
+        }
+        .lexical-subscript {
+          font-size: 0.75em;
+          vertical-align: sub;
+        }
+        .lexical-superscript {
+          font-size: 0.75em;
+          vertical-align: super;
         }
       `;
       document.head.appendChild(style);

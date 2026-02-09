@@ -5,6 +5,8 @@ import {
   FORMAT_ELEMENT_COMMAND,
   UNDO_COMMAND,
   REDO_COMMAND,
+  INDENT_CONTENT_COMMAND,
+  OUTDENT_CONTENT_COMMAND,
   $getSelection,
   $isRangeSelection,
   $createParagraphNode,
@@ -154,11 +156,11 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
   // Indent/Outdent
   const formatOutdent = () => {
-    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'outdent');
+    editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
   };
 
   const formatIndent = () => {
-    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'indent');
+    editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined);
   };
 
   // Clipboard commands
