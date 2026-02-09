@@ -1,44 +1,97 @@
+/**
+ * ToolbarPlugin.jsx - The formatting toolbar with all the buttons
+ *
+ * This file demonstrates several advanced React concepts:
+ * - Multiple useState hooks for tracking button states
+ * - useEffect for setting up event listeners
+ * - useCallback for optimized function references
+ * - useRef for accessing DOM elements directly
+ * - Event handlers and user interactions
+ */
+
+// React hooks
 import React, { useCallback, useEffect, useState, useRef } from 'react';
+
+// Get the editor instance from Lexical's context
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+
+// Lexical commands - These are like "actions" you can send to the editor
+// Commands follow a pattern: you dispatch (send) them and the editor responds
 import {
-  FORMAT_TEXT_COMMAND,
-  FORMAT_ELEMENT_COMMAND,
-  UNDO_COMMAND,
-  REDO_COMMAND,
-  INDENT_CONTENT_COMMAND,
-  OUTDENT_CONTENT_COMMAND,
-  $getSelection,
-  $isRangeSelection,
-  $createParagraphNode,
-  $createTextNode,
-  $getRoot,
+  FORMAT_TEXT_COMMAND, // Bold, italic, underline, etc.
+  FORMAT_ELEMENT_COMMAND, // Alignment (left, center, right, justify)
+  UNDO_COMMAND, // Undo last action
+  REDO_COMMAND, // Redo last undone action
+  INDENT_CONTENT_COMMAND, // Increase indent
+  OUTDENT_CONTENT_COMMAND, // Decrease indent
+  $getSelection, // Get current text selection
+  $isRangeSelection, // Check if selection is a text range
+  $createParagraphNode, // Create paragraph node
+  $createTextNode, // Create text node
+  $getRoot, // Get root node of editor
 } from 'lexical';
+
+// List-related commands and utilities
 import {
-  INSERT_UNORDERED_LIST_COMMAND,
-  INSERT_ORDERED_LIST_COMMAND,
-  REMOVE_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND, // Create bullet list
+  INSERT_ORDERED_LIST_COMMAND, // Create numbered list
+  REMOVE_LIST_COMMAND, // Remove list formatting
   insertList,
-  $isListNode,
+  $isListNode, // Check if node is a list
 } from '@lexical/list';
+
+// Link-related utilities
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
+
+// Selection utilities
 import { $isParentElementRTL, $wrapNodes, $isAtNodeEnd } from '@lexical/selection';
+
+// General utilities
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
+
+// HTML generation for source view
 import { $generateHtmlFromNodes } from '@lexical/html';
-import { 
-  $createHeadingNode,
-  $createQuoteNode,
-  HeadingTagType 
+
+// Rich text node creators
+import {
+  $createHeadingNode, // Create heading nodes (H1, H2, H3)
+  $createQuoteNode, // Create blockquote nodes
+  HeadingTagType
 } from '@lexical/rich-text';
+
+// More selection utilities
 import { $setBlocksType } from '@lexical/selection';
+
+// Horizontal rule (line separator)
 import {
   INSERT_HORIZONTAL_RULE_COMMAND,
   $createHorizontalRuleNode,
 } from '@lexical/react/LexicalHorizontalRuleNode';
 
+/**
+ * LowPriority constant - Used for command priority
+ * When multiple listeners exist for a command, lower numbers run first
+ * 1 is a low priority (runs last)
+ */
 const LowPriority = 1;
 
+/**
+ * ToolbarPlugin - Main toolbar component
+ *
+ * @param {Object} props
+ * @param {string} props.toolList - Space-separated list of tools to show
+ * @param {boolean} props.inline - Whether toolbar should stick to top when scrolling
+ * @param {Object} props.spellCheckCallback - Spell check configuration
+ */
 export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallback }) {
+  // Get the editor instance
   const [editor] = useLexicalComposerContext();
+
+  // ===== STATE MANAGEMENT =====
+  // Each piece of state tracks whether a formatting option is currently active
+  // For example, isBold is true when the selected text is bold
+
+  // Text formatting states
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
@@ -47,19 +100,44 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   const [isSuperscript, setIsSuperscript] = useState(false);
   const [isCode, setIsCode] = useState(false);
   const [isLink, setIsLink] = useState(false);
+
+  // History states - track if undo/redo are available
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+
+  // Editor feature states
   const [fontSize, setFontSize] = useState('16px');
   const [isMaximized, setIsMaximized] = useState(false);
-  const [showSource, setShowSource] = useState(false);
-  const [sourceHTML, setSourceHTML] = useState('');
+  const [showSource, setShowSource] = useState(false); // HTML source view
+  const [sourceHTML, setSourceHTML] = useState(''); // HTML content for source view
+
+  /**
+   * useRef - Creates a reference to a DOM element
+   * Unlike state, changing a ref doesn't cause a re-render
+   * Refs are useful for accessing DOM elements directly
+   */
   const fontSizeRef = useRef(null);
 
+  // Parse the toolList string into an array
+  // 'bold italic underline' becomes ['bold', 'italic', 'underline']
+  // .filter(t => t.trim()) removes any empty strings
   const tools = toolList.split(' ').filter(t => t.trim());
 
+  /**
+   * updateToolbar - Updates the toolbar button states based on current selection
+   *
+   * useCallback is a React Hook that memoizes (caches) a function
+   * This prevents unnecessary re-creations of the function on every render
+   * The function is only recreated if dependencies in the array change
+   */
   const updateToolbar = useCallback(() => {
+    // Get the current text selection in the editor
     const selection = $getSelection();
+
+    // Check if it's a range selection (text is selected, not just cursor position)
     if ($isRangeSelection(selection)) {
+      // Check which formats are applied to the selected text
+      // hasFormat() returns true if that format is active
       setIsBold(selection.hasFormat('bold'));
       setIsItalic(selection.hasFormat('italic'));
       setIsUnderline(selection.hasFormat('underline'));
@@ -68,39 +146,68 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       setIsSuperscript(selection.hasFormat('superscript'));
       setIsCode(selection.hasFormat('code'));
 
+      // Check if selected text is inside a link
+      // anchor is where the selection starts
       const node = selection.anchor.getNode();
       const parent = node.getParent();
+      // Check both the node and its parent to see if either is a link
       setIsLink($isLinkNode(parent) || $isLinkNode(node));
     }
-  }, []);
+  }, []); // Empty dependency array means this function never changes
 
+  /**
+   * useEffect - Set up event listeners when component mounts
+   * This runs once when the toolbar first appears
+   */
   useEffect(() => {
+    /**
+     * mergeRegister - Combines multiple event listener cleanup functions
+     * It returns a single cleanup function that will unregister all listeners
+     */
     return mergeRegister(
+      // Listen for any editor updates (typing, formatting, etc.)
       editor.registerUpdateListener(({ editorState }) => {
+        // Read the current state and update toolbar
         editorState.read(() => {
           updateToolbar();
         });
       }),
+
+      // Listen for undo command
       editor.registerCommand(
         UNDO_COMMAND,
         () => {
+          // Update whether undo is available
+          // _selection !== null means there's something to undo
           setCanUndo(editor.getEditorState()._selection !== null);
-          return false;
+          return false; // false means "don't stop other listeners"
         },
-        LowPriority
+        LowPriority // This listener runs last
       ),
+
+      // Listen for redo command
       editor.registerCommand(
         REDO_COMMAND,
         () => {
+          // Update whether redo is available
           setCanRedo(editor.getEditorState()._selection !== null);
           return false;
         },
         LowPriority
       )
     );
-  }, [editor, updateToolbar]);
+  }, [editor, updateToolbar]); // Re-run if editor or updateToolbar changes
 
-  // Text formatting commands
+  // ===== TEXT FORMATTING COMMANDS =====
+  // These functions send commands to the editor to format text
+  // editor.dispatchCommand() sends a command to the editor
+  // FORMAT_TEXT_COMMAND is the command type
+  // The second parameter ('bold', 'italic', etc.) specifies which format
+
+  /**
+   * formatBold - Toggles bold formatting on selected text
+   * If text is already bold, it removes bold; if not bold, it makes it bold
+   */
   const formatBold = () => {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
   };
@@ -189,18 +296,32 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     });
   };
 
-  // Font size
+  // ===== FONT SIZE =====
+  /**
+   * handleFontSize - Changes the font size of selected text
+   * @param {Event} e - The change event from the dropdown
+   */
   const handleFontSize = (e) => {
+    // e.target is the <select> dropdown element
+    // e.target.value is the selected option's value (e.g., "16px")
     const size = e.target.value;
+
+    // Update our state to reflect the current font size
     setFontSize(size);
+
+    // Update the editor content
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Apply font size via style
+        // Get all nodes (pieces of text) in the selection
         const nodes = selection.getNodes();
+
+        // Loop through each node and apply the font size
         nodes.forEach(node => {
+          // Get the actual DOM element for this node
           const element = editor.getElementByKey(node.getKey());
           if (element) {
+            // Apply inline style to change font size
             element.style.fontSize = size;
           }
         });
@@ -259,20 +380,29 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     });
   };
 
-  // Maximize
+  // ===== MAXIMIZE EDITOR =====
+  /**
+   * toggleMaximize - Makes editor full-screen or restores normal size
+   * This manipulates the DOM directly using standard JavaScript
+   */
   const toggleMaximize = () => {
+    // querySelector finds the first element matching the CSS selector
     const container = document.querySelector('.lexical-editor-container');
+
     if (container) {
       if (!isMaximized) {
-        container.style.position = 'fixed';
+        // Maximize: Make editor fill the entire screen
+        container.style.position = 'fixed'; // Fixed position relative to viewport
         container.style.top = '0';
         container.style.left = '0';
-        container.style.width = '100vw';
-        container.style.height = '100vh';
-        container.style.zIndex = '9999';
+        container.style.width = '100vw'; // 100% of viewport width
+        container.style.height = '100vh'; // 100% of viewport height
+        container.style.zIndex = '9999'; // Very high z-index to appear on top
         container.style.backgroundColor = 'white';
         setIsMaximized(true);
       } else {
+        // Restore: Clear all the styles we added
+        // Setting to '' removes the inline style
         container.style.position = '';
         container.style.top = '';
         container.style.left = '';
@@ -285,39 +415,63 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     }
   };
 
-  // Source code view
+  // ===== SOURCE CODE VIEW =====
+  /**
+   * toggleSource - Shows/hides the HTML source code view
+   * This lets users see and edit the raw HTML of their content
+   */
   const toggleSource = () => {
     if (!showSource) {
+      // Switching TO source view: Generate HTML from editor content
       editor.getEditorState().read(() => {
+        // $generateHtmlFromNodes converts Lexical nodes to HTML string
         const htmlString = $generateHtmlFromNodes(editor, null);
-        setSourceHTML(htmlString);
-        setShowSource(true);
+        setSourceHTML(htmlString); // Save HTML in state
+        setShowSource(true); // Show the source view
       });
     } else {
+      // Switching AWAY from source view: Just hide it
+      // Don't apply changes yet - user must click "Apply Changes"
       setShowSource(false);
     }
   };
 
-  // Update source HTML when editing in source mode
+  /**
+   * handleSourceChange - Updates the HTML as user types in source view
+   * @param {Event} e - The input event from the textarea
+   */
   const handleSourceChange = (e) => {
+    // Update our state with the new HTML content
     setSourceHTML(e.target.value);
   };
 
-  // Apply source changes back to editor
+  /**
+   * applySourceChanges - Applies edited HTML back to the editor
+   * Currently simplified - parses HTML and inserts as plain text
+   * A more advanced version would preserve HTML structure
+   */
   const applySourceChanges = () => {
     editor.update(() => {
+      // Clear all existing content
       const root = $getRoot();
       root.clear();
 
-      // Parse HTML and insert as text for now (proper HTML parsing would be better)
+      // Parse the HTML string into a DOM document
+      // DOMParser is a browser API for parsing HTML/XML strings
       const parser = new DOMParser();
       const doc = parser.parseFromString(sourceHTML, 'text/html');
+
+      // Extract just the text content (strips HTML tags)
+      // This is simplified - a full implementation would preserve formatting
       const textContent = doc.body.textContent || '';
 
+      // Create a new paragraph with the text
       const paragraph = $createParagraphNode();
       paragraph.append($createTextNode(textContent));
       root.append(paragraph);
     });
+
+    // Hide source view after applying changes
     setShowSource(false);
   };
 
@@ -376,36 +530,54 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     });
   };
 
+  // ===== STYLES =====
+  // In React, inline styles are JavaScript objects with camelCase property names
+
+  /**
+   * toolbarStyle - Styles for the main toolbar container
+   * Uses flexbox for layout (display: 'flex')
+   */
   const toolbarStyle = {
-    display: 'flex',
-    gap: '4px',
+    display: 'flex', // Flexbox layout
+    gap: '4px', // Space between buttons
     padding: '8px',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f0f0f0', // Light gray background
     borderBottom: '1px solid #ccc',
-    flexWrap: 'wrap',
-    alignItems: 'center',
+    flexWrap: 'wrap', // Wrap buttons to next line if needed
+    alignItems: 'center', // Vertically center items
+    // Conditional styling: If inline is true, make toolbar stick to top when scrolling
     ...(inline && { position: 'sticky', top: 0, zIndex: 10 })
   };
 
+  /**
+   * buttonStyle - Base style for toolbar buttons
+   */
   const buttonStyle = {
     padding: '6px 10px',
     border: '1px solid #ccc',
     backgroundColor: 'white',
-    cursor: 'pointer',
-    borderRadius: '3px',
+    cursor: 'pointer', // Show hand cursor on hover
+    borderRadius: '3px', // Rounded corners
     fontSize: '13px',
     minWidth: '30px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: 'inline-flex', // Flexbox for centering content
+    alignItems: 'center', // Center content vertically
+    justifyContent: 'center', // Center content horizontally
   };
 
+  /**
+   * activeButtonStyle - Style for buttons that are "active" (e.g., bold when text is bold)
+   * Spreads buttonStyle and overrides specific properties
+   */
   const activeButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: '#d0d0d0',
-    fontWeight: 'bold',
+    ...buttonStyle, // Copy all properties from buttonStyle
+    backgroundColor: '#d0d0d0', // Darker background for active state
+    fontWeight: 'bold', // Bold text
   };
 
+  /**
+   * separatorStyle - Vertical line to separate button groups
+   */
   const separatorStyle = {
     width: '1px',
     height: '24px',
@@ -413,53 +585,81 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     margin: '0 4px',
   };
 
+  /**
+   * RETURN STATEMENT - The JSX that renders the toolbar
+   *
+   * Key JSX patterns used here:
+   * 1. Conditional rendering: {condition && <Element />}
+   *    - Only renders if condition is true
+   * 2. Ternary operator: {condition ? value1 : value2}
+   *    - Chooses between two values based on condition
+   * 3. Arrow functions in onClick: onClick={() => doSomething()}
+   *    - Creates a function that runs when button is clicked
+   * 4. Fragments: <> ... </>
+   *    - Groups multiple elements without adding extra DOM nodes
+   */
   return (
     <>
-    <div className="lexical-toolbar" style={toolbarStyle}>
-      {tools.includes('spellcheck') && spellCheckCallback && (
-        <button
-          onClick={handleSpellCheck}
-          style={buttonStyle}
-          title="Spell Check"
-          aria-label="Spell Check"
-        >
-          ABC✓
-        </button>
-      )}
+      {/* Main toolbar container */}
+      <div className="lexical-toolbar" style={toolbarStyle}>
 
-      {tools.includes('undo') && (
-        <button
-          onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
-          style={buttonStyle}
-          title="Undo"
-          aria-label="Undo"
-        >
-          ↶
-        </button>
-      )}
-      {tools.includes('redo') && (
-        <button
-          onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
-          style={buttonStyle}
-          title="Redo"
-          aria-label="Redo"
-        >
-          ↷
-        </button>
-      )}
+        {/* SPELL CHECK BUTTON
+            Conditional rendering: Only shows if both conditions are true
+            && is logical AND: left && right means "if left is true, render right" */}
+        {tools.includes('spellcheck') && spellCheckCallback && (
+          <button
+            onClick={handleSpellCheck}
+            style={buttonStyle}
+            title="Spell Check" // Tooltip on hover
+            aria-label="Spell Check" // For screen readers (accessibility)
+          >
+            ABC✓
+          </button>
+        )}
 
-      {(tools.includes('undo') || tools.includes('redo')) && <div style={separatorStyle}></div>}
+        {/* UNDO BUTTON */}
+        {tools.includes('undo') && (
+          <button
+            // Arrow function: () => editor.dispatchCommand(...)
+            // This creates a function that runs when button is clicked
+            onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
+            style={buttonStyle}
+            title="Undo"
+            aria-label="Undo"
+          >
+            ↶ {/* Unicode arrow character */}
+          </button>
+        )}
 
-      {tools.includes('bold') && (
-        <button
-          onClick={formatBold}
-          style={isBold ? activeButtonStyle : buttonStyle}
-          title="Bold"
-          aria-label="Format Bold"
-        >
-          <b>B</b>
-        </button>
-      )}
+        {/* REDO BUTTON */}
+        {tools.includes('redo') && (
+          <button
+            onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
+            style={buttonStyle}
+            title="Redo"
+            aria-label="Redo"
+          >
+            ↷
+          </button>
+        )}
+
+        {/* SEPARATOR - Vertical line between button groups
+            || is logical OR: shows separator if either button exists */}
+        {(tools.includes('undo') || tools.includes('redo')) && <div style={separatorStyle}></div>}
+
+        {/* BOLD BUTTON
+            Ternary operator in style: condition ? ifTrue : ifFalse
+            Shows activeButtonStyle when text is bold, buttonStyle when not */}
+        {tools.includes('bold') && (
+          <button
+            onClick={formatBold}
+            style={isBold ? activeButtonStyle : buttonStyle}
+            title="Bold"
+            aria-label="Format Bold"
+          >
+            <b>B</b> {/* The <b> tag makes the B bold */}
+          </button>
+        )}
       {tools.includes('italic') && (
         <button
           onClick={formatItalic}
@@ -725,15 +925,21 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
     </div>
 
+    {/* ===== SOURCE CODE VIEW =====
+        Conditional rendering: This entire section only appears when showSource is true */}
     {showSource && (
       <div style={{ padding: '10px', backgroundColor: '#f9f9f9', borderTop: '1px solid #ccc' }}>
+
+        {/* Button container */}
         <div style={{ marginBottom: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold' }}>HTML Source:</span>
+
+          {/* Apply Changes button - Saves edited HTML back to editor */}
           <button
             onClick={applySourceChanges}
             style={{
-              ...buttonStyle,
-              backgroundColor: '#4CAF50',
+              ...buttonStyle, // Copy base button styles
+              backgroundColor: '#4CAF50', // Green background
               color: 'white',
               border: 'none',
             }}
@@ -741,6 +947,8 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
           >
             Apply Changes
           </button>
+
+          {/* Cancel button - Closes source view without saving */}
           <button
             onClick={toggleSource}
             style={buttonStyle}
@@ -749,23 +957,29 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
             Cancel
           </button>
         </div>
+
+        {/* Textarea for editing HTML
+            Controlled component: value and onChange make React control the textarea
+            value={sourceHTML} - textarea shows this state
+            onChange={handleSourceChange} - updates state when user types */}
         <textarea
           value={sourceHTML}
           onChange={handleSourceChange}
           style={{
             width: '100%',
             minHeight: '300px',
-            fontFamily: 'monospace',
+            fontFamily: 'monospace', // Fixed-width font like code editors
             fontSize: '13px',
             padding: '10px',
             border: '1px solid #ccc',
             borderRadius: '4px',
-            resize: 'vertical',
+            resize: 'vertical', // Allow user to resize vertically
           }}
-          spellCheck={false}
+          spellCheck={false} // Don't spell-check HTML code
         />
       </div>
     )}
+    {/* End of toolbar and source view */}
     </>
   );
 }
