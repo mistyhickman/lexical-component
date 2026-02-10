@@ -70,6 +70,9 @@ import {
 // Table utilities
 import TableCreatorPlugin from './TableCreatorPlugin';
 
+// Source code view plugin
+import SourceCodePlugin from './SourceCodePlugin';
+
 
 
 /**
@@ -114,6 +117,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSource, setShowSource] = useState(false); // HTML source view
   const [sourceHTML, setSourceHTML] = useState(''); // HTML content for source view
+  const [sourceError, setSourceError] = useState(null); // Error for source view
 
   // Table creator popover state
   const [tableAnchorEl, setTableAnchorEl] = useState(null);
@@ -429,11 +433,12 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
   /**
    * handleSourceChange - Updates the HTML as user types in source view
-   * @param {Event} e - The input event from the textarea
+   * @param {string} html - The new HTML content
    */
-  const handleSourceChange = (e) => {
+  const handleSourceChange = (html) => {
     // Update our state with the new HTML content
-    setSourceHTML(e.target.value);
+    setSourceHTML(html);
+    setSourceError(null); // Clear any previous errors
   };
 
   /**
@@ -442,28 +447,40 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
    * A more advanced version would preserve HTML structure
    */
   const applySourceChanges = () => {
-    editor.update(() => {
-      // Clear all existing content
-      const root = $getRoot();
-      root.clear();
+    try {
+      editor.update(() => {
+        // Clear all existing content
+        const root = $getRoot();
+        root.clear();
 
-      // Parse the HTML string into a DOM document
-      // DOMParser is a browser API for parsing HTML/XML strings
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(sourceHTML, 'text/html');
+        // Parse the HTML string into a DOM document
+        // DOMParser is a browser API for parsing HTML/XML strings
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(sourceHTML, 'text/html');
 
-      // Extract just the text content (strips HTML tags)
-      // This is simplified - a full implementation would preserve formatting
-      const textContent = doc.body.textContent || '';
+        // Check for parsing errors
+        const parserError = doc.querySelector('parsererror');
+        if (parserError) {
+          throw new Error('Invalid HTML syntax');
+        }
 
-      // Create a new paragraph with the text
-      const paragraph = $createParagraphNode();
-      paragraph.append($createTextNode(textContent));
-      root.append(paragraph);
-    });
+        // Extract just the text content (strips HTML tags)
+        // This is simplified - a full implementation would preserve formatting
+        const textContent = doc.body.textContent || '';
 
-    // Hide source view after applying changes
-    setShowSource(false);
+        // Create a new paragraph with the text
+        const paragraph = $createParagraphNode();
+        paragraph.append($createTextNode(textContent));
+        root.append(paragraph);
+      });
+
+      // Clear error and hide source view after applying changes
+      setSourceError(null);
+      setShowSource(false);
+    } catch (error) {
+      // Set error message to display in the plugin
+      setSourceError(error.message || 'Failed to parse HTML');
+    }
   };
 
   // Font case
@@ -937,59 +954,14 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     </div>
 
     {/* ===== SOURCE CODE VIEW =====
-        Conditional rendering: This entire section only appears when showSource is true */}
-    {showSource && (
-      <div style={{ padding: '10px', backgroundColor: '#f9f9f9', borderTop: '1px solid #ccc' }}>
-
-        {/* Button container */}
-        <div style={{ marginBottom: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>HTML Source:</span>
-
-          {/* Apply Changes button - Saves edited HTML back to editor */}
-          <button
-            onClick={applySourceChanges}
-            style={{
-              ...buttonStyle, // Copy base button styles
-              backgroundColor: '#4CAF50', // Green background
-              color: 'white',
-              border: 'none',
-            }}
-            title="Apply Changes"
-          >
-            Apply Changes
-          </button>
-
-          {/* Cancel button - Closes source view without saving */}
-          <button
-            onClick={toggleSource}
-            style={buttonStyle}
-            title="Cancel"
-          >
-            Cancel
-          </button>
-        </div>
-
-        {/* Textarea for editing HTML
-            Controlled component: value and onChange make React control the textarea
-            value={sourceHTML} - textarea shows this state
-            onChange={handleSourceChange} - updates state when user types */}
-        <textarea
-          value={sourceHTML}
-          onChange={handleSourceChange}
-          style={{
-            width: '100%',
-            minHeight: '300px',
-            fontFamily: 'monospace', // Fixed-width font like code editors
-            fontSize: '13px',
-            padding: '10px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            resize: 'vertical', // Allow user to resize vertically
-          }}
-          spellCheck={false} // Don't spell-check HTML code
-        />
-      </div>
-    )}
+        New SourceCodePlugin component for viewing/editing HTML */}
+    <SourceCodePlugin
+      isSourceCodeView={showSource}
+      onHtmlChange={handleSourceChange}
+      initialHtml={sourceHTML}
+      error={sourceError}
+      onExitShortcut={applySourceChanges}
+    />
 
     {/* Table Creator Popover */}
     {tools.includes('table') && (
