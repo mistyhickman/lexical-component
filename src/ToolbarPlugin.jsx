@@ -114,6 +114,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
   // Editor feature states
   const [fontSize, setFontSize] = useState('16px');
+  const [fontFamily, setFontFamily] = useState('default');
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSource, setShowSource] = useState(false); // HTML source view
   const [sourceHTML, setSourceHTML] = useState(''); // HTML content for source view
@@ -334,6 +335,42 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
           if (element) {
             // Apply inline style to change font size
             element.style.fontSize = size;
+          }
+        });
+      }
+    });
+  };
+
+  // ===== FONT FAMILY =====
+  /**
+   * handleFontFamily - Changes the font family of selected text
+   * @param {Event} e - The change event from the dropdown
+   */
+  const handleFontFamily = (e) => {
+    const font = e.target.value;
+
+    // Update our state to reflect the current font family
+    setFontFamily(font);
+
+    // Update the editor content
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        // Get all nodes (pieces of text) in the selection
+        const nodes = selection.getNodes();
+
+        // Loop through each node and apply the font family
+        nodes.forEach(node => {
+          // Get the actual DOM element for this node
+          const element = editor.getElementByKey(node.getKey());
+          if (element) {
+            // Apply inline style to change font family
+            // If 'default' is selected, remove the inline style to use the default font
+            if (font === 'default') {
+              element.style.fontFamily = '';
+            } else {
+              element.style.fontFamily = font;
+            }
           }
         });
       }
@@ -872,6 +909,34 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
           <option value="28px">28px</option>
           <option value="32px">32px</option>
           <option value="36px">36px</option>
+        </select>
+      )}
+
+      {tools.includes('fontfamily') && (
+        <select
+          onChange={handleFontFamily}
+          value={fontFamily}
+          style={{
+            padding: '4px 8px',
+            border: '1px solid #ccc',
+            borderRadius: '3px',
+            fontSize: '13px',
+            cursor: 'pointer',
+            minWidth: '140px',
+          }}
+          title="Font Family"
+          aria-label="Font Family"
+        >
+          <option value="default">Default</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="'Lucida Console', monospace">Lucida Console</option>
+          <option value="Tahoma, sans-serif">Tahoma</option>
+          <option value="'Times New Roman', serif">Times New Roman</option>
+          <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+          <option value="Verdana, sans-serif">Verdana</option>
         </select>
       )}
 
