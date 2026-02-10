@@ -9,11 +9,9 @@
  * - Event handlers and user interactions
  */
 
-// React hooks
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-
-// Get the editor instance from Lexical's context
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import styled from '@emotion/styled';
 
 // Lexical commands - These are like "actions" you can send to the editor
 // Commands follow a pattern: you dispatch (send) them and the editor responds
@@ -30,6 +28,7 @@ import {
   $createTextNode, // Create text node
   $getRoot, // Get root node of editor
 } from 'lexical';
+
 
 // List-related commands and utilities
 import {
@@ -67,6 +66,11 @@ import {
   INSERT_HORIZONTAL_RULE_COMMAND,
   $createHorizontalRuleNode,
 } from '@lexical/react/LexicalHorizontalRuleNode';
+
+// Table utilities
+import TableCreatorPlugin from './TableCreatorPlugin';
+
+
 
 /**
  * LowPriority constant - Used for command priority
@@ -110,6 +114,9 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSource, setShowSource] = useState(false); // HTML source view
   const [sourceHTML, setSourceHTML] = useState(''); // HTML content for source view
+
+  // Table creator popover state
+  const [tableAnchorEl, setTableAnchorEl] = useState(null);
 
   /**
    * useRef - Creates a reference to a DOM element
@@ -329,29 +336,13 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     });
   };
 
-  // Table insertion
-  const insertTable = () => {
-    const rows = prompt('Number of rows:', '3');
-    const cols = prompt('Number of columns:', '3');
-    if (rows && cols) {
-      editor.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          let tableHTML = '<table border="1" style="border-collapse: collapse; width: 100%;">';
-          for (let i = 0; i < parseInt(rows); i++) {
-            tableHTML += '<tr>';
-            for (let j = 0; j < parseInt(cols); j++) {
-              tableHTML += '<td style="border: 1px solid #ccc; padding: 8px;">&nbsp;</td>';
-            }
-            tableHTML += '</tr>';
-          }
-          tableHTML += '</table>';
-          
-          // Insert as text for now (proper table nodes would require custom node implementation)
-          selection.insertText(tableHTML);
-        }
-      });
-    }
+  // Table popover handlers
+  const handleTableClick = (event) => {
+    setTableAnchorEl(event.currentTarget);
+  };
+
+  const handleTableClose = () => {
+    setTableAnchorEl(null);
   };
 
   // Footnote
@@ -872,7 +863,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
       {tools.includes('table') && (
         <button
-          onClick={insertTable}
+          onClick={handleTableClick}
           style={buttonStyle}
           title="Insert Table"
           aria-label="Insert Table"
@@ -979,6 +970,16 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         />
       </div>
     )}
+
+    {/* Table Creator Popover */}
+    {tools.includes('table') && (
+      <TableCreatorPlugin
+        handleClose={handleTableClose}
+        anchorEl={tableAnchorEl}
+        dynamicPosition={{ vertical: 'bottom', horizontal: 'left' }}
+      />
+    )}
+
     {/* End of toolbar and source view */}
     </>
   );
