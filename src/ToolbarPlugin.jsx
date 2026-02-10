@@ -27,6 +27,7 @@ import {
   $createParagraphNode, // Create paragraph node
   $createTextNode, // Create text node
   $getRoot, // Get root node of editor
+  $selectAll, // Select all content in editor
 } from 'lexical';
 
 
@@ -552,6 +553,46 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     });
   };
 
+  // Remove formatting
+  const removeFormatting = () => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        // Get all nodes in the selection
+        const nodes = selection.getNodes();
+
+        // Remove inline styles from DOM elements
+        nodes.forEach(node => {
+          const element = editor.getElementByKey(node.getKey());
+          if (element) {
+            // Clear all inline styles
+            element.style.cssText = '';
+          }
+
+          // If it's a text node, remove all formatting flags
+          if (node.getType() === 'text') {
+            // Clear all text format flags (bold, italic, underline, etc.)
+            node.setFormat(0);
+          }
+        });
+
+        // Get the plain text content
+        const plainText = selection.getTextContent();
+
+        // Replace the selection with plain text
+        selection.insertText(plainText);
+      }
+    });
+  };
+
+  // Select all
+  const selectAllContent = () => {
+    editor.update(() => {
+      // Use Lexical's built-in $selectAll function to select all content
+      $selectAll();
+    });
+  };
+
   // Spell check
   const handleSpellCheck = () => {
     if (spellCheckCallback && spellCheckCallback.fnSpellCheckFunction) {
@@ -751,6 +792,26 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
           aria-label="Superscript"
         >
           X<sup>2</sup>
+        </button>
+      )}
+      {tools.includes('removeformatting') && (
+        <button
+          onClick={removeFormatting}
+          style={buttonStyle}
+          title="Remove Formatting"
+          aria-label="Remove Formatting"
+        >
+          ✖
+        </button>
+      )}
+      {tools.includes('selectall') && (
+        <button
+          onClick={selectAllContent}
+          style={buttonStyle}
+          title="Select All"
+          aria-label="Select All"
+        >
+          ⊙
         </button>
       )}
 
