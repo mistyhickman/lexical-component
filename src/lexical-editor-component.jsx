@@ -4,6 +4,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 // Import our main Lexical editor React component
 import LexicalEditor from './LexicalEditor';
+// Import table CSS
+import './LexicalTable.css';
 
 /**
  * LexicalEditorElement - A Web Component wrapper for our React-based Lexical editor
@@ -19,7 +21,7 @@ class LexicalEditorElement extends HTMLElement {
    * This runs BEFORE the element is added to the page
    */
   constructor() {
-    // Call the parent class (HTMLElement) constructor - required in all classes that extend another
+    // Call the parent class (HTMLElement) constructor
     super();
     // Initialize a property to hold our React root (null until we render)
     this.root = null;

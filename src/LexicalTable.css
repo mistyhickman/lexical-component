@@ -1,0 +1,117 @@
+/**
+ * LexicalTable.css - Styling for Lexical editor tables
+ *
+ * This file contains all the CSS needed to make tables look good in the editor
+ */
+
+/* Base table styling */
+table.lexical-table,
+.lexical-table {
+  display: table !important;
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  background-color: white;
+  table-layout: fixed;
+}
+
+/* Table row styling */
+tr.lexical-table-row,
+.lexical-table-row {
+  display: table-row !important;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Table header cell styling */
+th.lexical-table-cell-header,
+.lexical-table-cell-header {
+  display: table-cell !important;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  min-width: 75px;
+  min-height: 30px;
+  background-color: #f0f0f0;
+  font-weight: bold;
+  text-align: center;
+  vertical-align: top;
+  position: relative;
+  outline: none;
+}
+
+/* Table data cell styling */
+td.lexical-table-cell,
+.lexical-table-cell {
+  display: table-cell !important;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  min-width: 75px;
+  min-height: 30px;
+  background-color: white;
+  vertical-align: top;
+  text-align: left;
+  position: relative;
+  outline: none;
+}
+
+/* Table cell content - paragraphs inside cells */
+.lexical-table-cell p,
+.lexical-table-cell-header p {
+  min-height: 20px;
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+/* Empty table cell placeholder - ensures cells are visible even when empty */
+.lexical-table-cell:empty::before,
+.lexical-table-cell-header:empty::before {
+  content: '\200B'; /* Zero-width space */
+  display: inline-block;
+}
+
+/* Cell hover effect */
+.lexical-table-cell:hover,
+.lexical-table-cell-header:hover {
+  background-color: #f5f5f5;
+}
+
+/* Cell focus/selected styling */
+.lexical-table-cell:focus,
+.lexical-table-cell-header:focus {
+  background-color: #fff;
+  outline: 2px solid #2196F3;
+}
+
+/* Selected cell styling */
+.lexical-table-cell--selected,
+.lexical-table-cell-header--selected {
+  background-color: #e3f2fd;
+  outline: 2px solid #2196F3;
+}
+
+/* Responsive table - scroll on small screens */
+@media (max-width: 768px) {
+  .lexical-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Table cell resizer (for resizable columns) */
+.lexical-table-cell-resizer {
+  position: absolute;
+  right: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.lexical-table-cell-resizer:hover {
+  background-color: #2196F3;
+}

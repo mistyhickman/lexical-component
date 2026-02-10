@@ -12,6 +12,9 @@
 // React core imports
 import React, { useEffect, useState } from 'react';
 
+// CSS imports
+import './LexicalTable.css';
+
 // Lexical core components - These are building blocks for the editor
 import { LexicalComposer } from '@lexical/react/LexicalComposer'; // Main wrapper that provides editor context
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'; // Enables rich text editing
@@ -20,12 +23,14 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'; // Enables 
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'; // Auto-focuses editor on load
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'; // Enables bullet and numbered lists
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin'; // Tab key for indentation
+import { TablePlugin } from '@lexical/react/LexicalTablePlugin'; // Enables table functionality
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary'; // Catches and handles errors
 
 // Lexical node types - These define what kind of content the editor can handle
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quote nodes
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
+import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -39,9 +44,6 @@ import ToolbarPlugin from './ToolbarPlugin';
 
 /**
  * LoadContentPlugin - A custom plugin to load initial content into the editor
- *
- * Plugins in Lexical are React components that hook into the editor's functionality
- * This plugin loads content when the component mounts
  *
  * @param {Object} props - Component props
  * @param {Array} props.documents - Array of document objects with initial content
@@ -244,6 +246,10 @@ export default function LexicalEditor({
         },
       },
       link: 'lexical-link', // Hyperlinks
+      table: 'lexical-table', // Table container
+      tableRow: 'lexical-table-row', // Table rows
+      tableCell: 'lexical-table-cell', // Table cells
+      tableCellHeader: 'lexical-table-cell-header', // Table header cells
       text: {
         // Text formatting classes
         bold: 'lexical-bold',
@@ -270,6 +276,9 @@ export default function LexicalEditor({
       ListItemNode, // Enables list items (li)
       QuoteNode, // Enables blockquotes
       LinkNode, // Enables hyperlinks
+      TableNode, // Enables tables
+      TableRowNode, // Enables table rows
+      TableCellNode, // Enables table cells
     ],
 
     // Initial editable state
@@ -368,6 +377,7 @@ export default function LexicalEditor({
             <ListPlugin /> {/* Bullet and numbered lists */}
             <TabIndentationPlugin /> {/* Tab key to indent */}
             <AutoFocusPlugin /> {/* Focus editor when page loads */}
+            <TablePlugin hasCellMerge={false} hasCellBackgroundColor={false} /> {/* Table functionality */}
 
             {/* Our custom plugins */}
             <LoadContentPlugin documents={documents} />

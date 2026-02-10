@@ -9,20 +9,14 @@
 <body>
     <h1>Lexical Editor Test Page</h1>
 <Br>
-    <h2> Full Editor Options</h2>
+    <h2>Example 1: Full Editor Options</h2>
     <input type="hidden" id="myfield_id2" value="Initial content here">
     <lexical-editor
         appcontainerid="editor2_container"
         aryeditordocuments='[{"name":"myfield2","id":"myfield_id2","body":"<p>Initial content here</p>"}]'
         toollist="spellcheck undo redo bold italic underline subscript superscript alignleft aligncenter alignright alignjustify bullist numlist outdent indent copy cut paste pasteword fontsize fontcase table footnote horizontalrule maximize source"
     ></lexical-editor>
-    
-    <h2>Example 1: Basic Editor</h2>
-    <lexical-editor
-        appcontainerid="editor1_container"
-        toollist="bold italic underline ul ol undo redo"
-    ></lexical-editor>
-
+<!--
     <h2>Example 2: Editor with Initial Content</h2>
     <input type="hidden" id="myfield_id" value="Initial content here">
     <lexical-editor
@@ -37,12 +31,6 @@
         editable="false"
         aryeditordocuments='[{"name":"readonly","id":"readonly_id","body":"<p>This content is read-only</p>"}]'
     ></lexical-editor>
-
-    <h2>Example 4: Custom Sizing</h2>
-    <lexical-editor
-        appcontainerid="editor4_container"
-        editorsizing='{"minHeight":"300px","maxHeight":"500px","resize":"vertical"}'
-    ></lexical-editor>
-
+-->
 </body>
 </html>
