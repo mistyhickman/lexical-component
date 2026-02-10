@@ -467,24 +467,32 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   };
 
   // Font case
-  const changeFontCase = () => {
-    const caseType = prompt('Enter case type:\n1 = UPPERCASE\n2 = lowercase\n3 = Title Case');
+  const changeFontCase = (e) => {
+    const caseType = e.target.value;
+
+    // Reset the dropdown to default after selection
+    e.target.value = '';
+
+    if (!caseType) return;
+
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
         const text = selection.getTextContent();
         let newText = text;
-        
-        if (caseType === '1') {
+
+        if (caseType === 'uppercase') {
           newText = text.toUpperCase();
-        } else if (caseType === '2') {
+        } else if (caseType === 'lowercase') {
           newText = text.toLowerCase();
-        } else if (caseType === '3') {
-          newText = text.replace(/\w\S*/g, (txt) => 
+        } else if (caseType === 'titlecase') {
+          newText = text.replace(/\w\S*/g, (txt) =>
             txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
           );
+        } else if (caseType === 'sentencecase') {
+          newText = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
         }
-        
+
         selection.insertText(newText);
       }
     });
@@ -851,14 +859,26 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
 
       {tools.includes('fontcase') && (
-        <button
-          onClick={changeFontCase}
-          style={buttonStyle}
+        <select
+          onChange={changeFontCase}
+          defaultValue=""
+          style={{
+            padding: '4px 8px',
+            border: '1px solid #ccc',
+            borderRadius: '3px',
+            fontSize: '13px',
+            cursor: 'pointer',
+            minWidth: '120px',
+          }}
           title="Change Case"
           aria-label="Change Case"
         >
-          Aa
-        </button>
+          <option value="" disabled>Change Case</option>
+          <option value="uppercase">UPPERCASE</option>
+          <option value="lowercase">lowercase</option>
+          <option value="titlecase">Title Case</option>
+          <option value="sentencecase">Sentence case</option>
+        </select>
       )}
 
       {tools.includes('table') && (
