@@ -702,6 +702,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
             && is logical AND: left && right means "if left is true, render right" */}
         {tools.includes('spellcheck') && spellCheckCallback && (
           <button
+            type="button"
             onClick={handleSpellCheck}
             style={buttonStyle}
             title="Spell Check" // Tooltip on hover
@@ -714,6 +715,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         {/* UNDO BUTTON */}
         {tools.includes('undo') && (
           <button
+            type="button"
             // Arrow function: () => editor.dispatchCommand(...)
             // This creates a function that runs when button is clicked
             onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
@@ -728,6 +730,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         {/* REDO BUTTON */}
         {tools.includes('redo') && (
           <button
+            type="button"
             onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
             style={buttonStyle}
             title="Redo"
@@ -746,6 +749,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
             Shows activeButtonStyle when text is bold, buttonStyle when not */}
         {tools.includes('bold') && (
           <button
+            type="button"
             onClick={formatBold}
             style={isBold ? activeButtonStyle : buttonStyle}
             title="Bold"
@@ -756,6 +760,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         )}
       {tools.includes('italic') && (
         <button
+            type="button"
           onClick={formatItalic}
           style={isItalic ? activeButtonStyle : buttonStyle}
           title="Italic"
@@ -766,6 +771,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('underline') && (
         <button
+            type="button"
           onClick={formatUnderline}
           style={isUnderline ? activeButtonStyle : buttonStyle}
           title="Underline"
@@ -776,6 +782,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('subscript') && (
         <button
+            type="button"
           onClick={formatSubscript}
           style={isSubscript ? activeButtonStyle : buttonStyle}
           title="Subscript"
@@ -786,6 +793,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('superscript') && (
         <button
+            type="button"
           onClick={formatSuperscript}
           style={isSuperscript ? activeButtonStyle : buttonStyle}
           title="Superscript"
@@ -796,6 +804,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('removeformatting') && (
         <button
+            type="button"
           onClick={removeFormatting}
           style={buttonStyle}
           title="Remove Formatting"
@@ -806,6 +815,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('selectall') && (
         <button
+            type="button"
           onClick={selectAllContent}
           style={buttonStyle}
           title="Select All"
@@ -819,6 +829,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
       {tools.includes('alignleft') && (
         <button
+            type="button"
           onClick={formatAlignLeft}
           style={buttonStyle}
           title="Align Left"
@@ -829,6 +840,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('aligncenter') && (
         <button
+            type="button"
           onClick={formatAlignCenter}
           style={buttonStyle}
           title="Align Center"
@@ -839,6 +851,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('alignright') && (
         <button
+            type="button"
           onClick={formatAlignRight}
           style={buttonStyle}
           title="Align Right"
@@ -849,6 +862,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('alignjustify') && (
         <button
+            type="button"
           onClick={formatAlignJustify}
           style={buttonStyle}
           title="Justify"
@@ -862,6 +876,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
       {tools.includes('bullist') && (
         <button
+            type="button"
           onClick={insertBulletList}
           style={buttonStyle}
           title="Bullet List"
@@ -872,6 +887,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('numlist') && (
         <button
+            type="button"
           onClick={insertNumberList}
           style={buttonStyle}
           title="Numbered List"
@@ -882,6 +898,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('outdent') && (
         <button
+            type="button"
           onClick={formatOutdent}
           style={buttonStyle}
           title="Decrease Indent"
@@ -892,6 +909,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('indent') && (
         <button
+            type="button"
           onClick={formatIndent}
           style={buttonStyle}
           title="Increase Indent"
@@ -905,6 +923,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
       {tools.includes('copy') && (
         <button
+            type="button"
           onClick={handleCopy}
           style={buttonStyle}
           title="Copy"
@@ -915,6 +934,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('cut') && (
         <button
+            type="button"
           onClick={handleCut}
           style={buttonStyle}
           title="Cut"
@@ -925,6 +945,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('paste') && (
         <button
+            type="button"
           onClick={handlePaste}
           style={buttonStyle}
           title="Paste"
@@ -935,6 +956,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('pasteword') && (
         <button
+            type="button"
           onClick={handlePasteWord}
           style={buttonStyle}
           title="Paste as Plain Text"
@@ -1026,6 +1048,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
       {tools.includes('table') && (
         <button
+            type="button"
           onClick={handleTableClick}
           style={buttonStyle}
           title="Insert Table"
@@ -1036,6 +1059,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('footnote') && (
         <button
+            type="button"
           onClick={insertFootnote}
           style={buttonStyle}
           title="Insert Footnote"
@@ -1046,6 +1070,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('horizontalrule') && (
         <button
+            type="button"
           onClick={insertHorizontalRule}
           style={buttonStyle}
           title="Insert Horizontal Rule"
@@ -1059,6 +1084,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
       {tools.includes('maximize') && (
         <button
+            type="button"
           onClick={toggleMaximize}
           style={isMaximized ? activeButtonStyle : buttonStyle}
           title={isMaximized ? "Restore" : "Maximize"}
@@ -1069,6 +1095,7 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       )}
       {tools.includes('source') && (
         <button
+            type="button"
           onClick={toggleSource}
           style={showSource ? activeButtonStyle : buttonStyle}
           title="View Source"
