@@ -5,46 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lexical Editor Test</title>
     <script src="/dist/lexical-editor.iife.js"></script>
+    <script src="/customcalls.js"></script>
 </head>
 <body>
     <h1>Lexical Editor Test Page</h1>
-<Br>
-    <h2>Example 1: Full Editor Options</h2>
-    <input type="hidden" id="myfield_id2" value="Initial content here">
-    <lexical-editor
-        appcontainerid="editor2_container"
-        aryeditordocuments='[{"name":"myfield2","id":"myfield_id2"}]'
-        toollist="spellcheck undo redo bold italic underline subscript superscript removeformatting selectall alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent copy cut paste pasteword fontsize fontfamily fontcase table footnote horizontalrule maximize source"
-    ></lexical-editor>
+    <br>
+
+    <!-- Example 1: Default editor with all toolbar options -->
+    <h2>Example 1: Full Editor</h2>
+    <input type="hidden" id="myfield_id" name="myfield" value="This is my test value">
+    <script>initializeLexical('myfield', 'myfield_id');</script>
 
     <br>
-    <button type="button" onclick="previewContent('myfield_id2')">Preview Content</button>
+    <button type="button" onclick="previewContent('myfield_id')">Preview Content</button>
 
-    <script>
-    function previewContent(fieldId) {
-        var content = document.getElementById(fieldId).value;
-        var previewWindow = window.open('', 'PreviewWindow', 'width=800,height=600,scrollbars=yes,resizable=yes');
-        previewWindow.document.open();
-        previewWindow.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Content Preview</title></head><body>' + content + '</body></html>');
-        previewWindow.document.close();
-    }
-    </script>
+    <br><br>
 
-<!--
-    <h2>Example 2: Editor with Initial Content</h2>
-    <input type="hidden" id="myfield_id" value="Initial content here">
-    <lexical-editor
-        appcontainerid="editor2_container"
-        aryeditordocuments='[{"name":"myfield","id":"myfield_id","body":"<p>Initial content here</p>"}]'
-        toollist="bold italic underline strikethrough code link ul ol quote undo redo"
-    ></lexical-editor>
+    <!-- Example 2: Editor with custom sizing -->
+    <h2>Example 2: Custom Sizing</h2>
+    <input type="hidden" id="notes_id" name="notes" value="">
+    <script>initializeLexical('notes', 'notes_id', {
+        editorSizing: { minHeight: '150px', maxHeight: '400px' }
+    });</script>
 
-    <h2>Example 3: Read-Only Editor</h2>
-    <lexical-editor
-        appcontainerid="editor3_container"
-        editable="false"
-        aryeditordocuments='[{"name":"readonly","id":"readonly_id","body":"<p>This content is read-only</p>"}]'
-    ></lexical-editor>
--->
+    <br>
+    <button type="button" onclick="previewContent('notes_id')">Preview Content</button>
+
 </body>
 </html>
