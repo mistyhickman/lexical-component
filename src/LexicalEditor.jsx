@@ -22,6 +22,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable'; // The 
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'; // Enables undo/redo
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'; // Auto-focuses editor on load
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'; // Enables bullet and numbered lists
+import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'; // Enables clickable check lists
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin'; // Tab key for indentation
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'; // Enables table functionality
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary'; // Catches and handles errors
@@ -394,6 +395,8 @@ export default function LexicalEditor({
         ul: 'lexical-ul', // Unordered list (bullets)
         ol: 'lexical-ol', // Ordered list (numbers)
         listitem: 'lexical-listitem', // Individual list items
+        listitemChecked: 'lexical-listitem-checked', // Checked checklist item
+        listitemUnchecked: 'lexical-listitem-unchecked', // Unchecked checklist item
         nested: {
           listitem: 'lexical-nested-listitem', // Nested list items
         },
@@ -528,6 +531,7 @@ export default function LexicalEditor({
             {/* Built-in Lexical plugins - Each adds specific functionality */}
             <HistoryPlugin /> {/* Undo/redo functionality */}
             <ListPlugin /> {/* Bullet and numbered lists */}
+            <CheckListPlugin /> {/* Clickable check lists */}
             <TabIndentationPlugin /> {/* Tab key to indent */}
             <AutoFocusPlugin /> {/* Focus editor when page loads */}
             <TablePlugin hasCellMerge={false} hasCellBackgroundColor={false} /> {/* Table functionality */}

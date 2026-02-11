@@ -237,6 +237,49 @@ class LexicalEditorElement extends HTMLElement {
         ol.lexical-ol ol.lexical-ol ol.lexical-ol {
           list-style-type: lower-roman;
         }
+
+        /* Checklist styles */
+        .lexical-listitem-checked,
+        .lexical-listitem-unchecked {
+          position: relative;
+          list-style-type: none;
+          padding-left: 24px;
+          margin-left: -24px;
+          cursor: pointer;
+        }
+        .lexical-listitem-checked::before,
+        .lexical-listitem-unchecked::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 4px;
+          width: 16px;
+          height: 16px;
+          border: 2px solid #999;
+          border-radius: 3px;
+          background-color: #fff;
+          cursor: pointer;
+        }
+        .lexical-listitem-checked::before {
+          background-color: #4a90d9;
+          border-color: #4a90d9;
+        }
+        .lexical-listitem-checked::after {
+          content: '';
+          position: absolute;
+          left: 6px;
+          top: 6px;
+          width: 5px;
+          height: 10px;
+          border: solid #fff;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+        .lexical-listitem-checked {
+          text-decoration: line-through;
+          color: #999;
+        }
+
         /* Text formatting styles */
         .lexical-link {
           color: #0066cc; /* Blue color for links */
