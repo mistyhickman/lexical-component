@@ -64,9 +64,17 @@ class LexicalEditorElement extends HTMLElement {
     try {
       const docsAttr = this.getAttribute('aryeditordocuments');
       if (docsAttr) {
-        // JSON.parse() converts a JSON string into a JavaScript object/array
-        // Example: '[{"name":"doc1","id":"field1","body":"<p>Text</p>"}]'
-        documents = JSON.parse(docsAttr);
+        // Sanitize the JSON string before parsing:
+        // Database content often contains raw line breaks, carriage returns, and tabs
+        // which are invalid control characters inside JSON strings.
+        // This replaces them with their properly escaped equivalents.
+        const sanitized = docsAttr
+          .replace(/\r\n/g, '\\n')  // Windows-style line breaks
+          .replace(/\r/g, '\\n')    // Old Mac-style line breaks
+          .replace(/\n/g, '\\n')    // Unix-style line breaks
+          .replace(/\t/g, '\\t');   // Tab characters
+
+        documents = JSON.parse(sanitized);
       }
     } catch (e) {
       // If parsing fails (malformed JSON), log the error to browser console
