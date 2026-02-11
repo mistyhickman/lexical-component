@@ -37,7 +37,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 
 // Lexical utility functions - These are used to manipulate editor content
 // The $ prefix is a Lexical convention meaning "this runs inside an editor update"
-import { $getRoot } from 'lexical';
+import { $getRoot, $createParagraphNode, $isElementNode, $isDecoratorNode } from 'lexical';
 
 // HTML import/export utilities for preserving HTML formatting
 import { $generateNodesFromDOM, $generateHtmlFromNodes } from '@lexical/html';
@@ -69,7 +69,26 @@ function LoadContentPlugin({ documents }) {
     if (documents && documents.length > 0) {
       // Get the first document from the array
       const firstDoc = documents[0];
-      if (firstDoc.body) {
+
+      // Determine the HTML content to load:
+      // 1. First, try reading from the hidden field (most reliable for database content
+      //    since it avoids JSON escaping issues with HTML containing double quotes)
+      // 2. Fall back to the "body" property in the document config if provided
+      let htmlContent = '';
+
+      if (firstDoc.id) {
+        const hiddenField = document.getElementById(firstDoc.id);
+        if (hiddenField && hiddenField.value) {
+          htmlContent = hiddenField.value;
+        }
+      }
+
+      // Fall back to body property if hidden field was empty
+      if (!htmlContent && firstDoc.body) {
+        htmlContent = firstDoc.body;
+      }
+
+      if (htmlContent) {
         // editor.update() - The ONLY way to modify editor content
         // It takes a function that runs inside Lexical's update cycle
         editor.update(() => {
@@ -81,14 +100,23 @@ function LoadContentPlugin({ documents }) {
           // Parse HTML content into a DOM structure
           // DOMParser is a browser API that converts HTML strings to DOM
           const parser = new DOMParser();
-          const dom = parser.parseFromString(firstDoc.body, 'text/html');
+          const dom = parser.parseFromString(htmlContent, 'text/html');
 
           // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
           const nodes = $generateNodesFromDOM(editor, dom);
 
           // Append each node to the root
+          // Root can only accept block-level nodes (ElementNode, DecoratorNode)
+          // Inline nodes (text, line breaks) must be wrapped in a paragraph first
           nodes.forEach(node => {
-            root.append(node);
+            if ($isElementNode(node) || $isDecoratorNode(node)) {
+              root.append(node);
+            } else {
+              // Wrap inline nodes in a paragraph
+              const paragraph = $createParagraphNode();
+              paragraph.append(node);
+              root.append(paragraph);
+            }
           });
         });
       }
