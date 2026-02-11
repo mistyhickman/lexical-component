@@ -128,6 +128,100 @@ function LoadContentPlugin({ documents }) {
 }
 
 /**
+ * ExternalAPIPlugin - Tracks active editor focus and provides a global API
+ * so external code (like popup windows) can insert content into the active editor.
+ *
+ * Global API exposed:
+ *   window.activeLexicalEditorId  - The hidden field ID of the last focused editor
+ *   window.setLexicalEditorContent(fieldId, htmlContent) - Set content of a specific editor
+ *   window.insertIntoActiveLexicalEditor(htmlContent) - Insert content into the active editor
+ *
+ * @param {Object} props
+ * @param {Array} props.documents - Array of documents (used to get field IDs)
+ */
+function ExternalAPIPlugin({ documents }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    // Get the field ID for this editor instance
+    const fieldId = documents && documents.length > 0 ? documents[0].id : null;
+    if (!fieldId) return;
+
+    // Initialize the global editor registry if it doesn't exist
+    if (!window._lexicalEditors) {
+      window._lexicalEditors = {};
+    }
+
+    // Register this editor instance in the global registry
+    window._lexicalEditors[fieldId] = editor;
+
+    // Listen for focus events on the editor's root element
+    const rootElement = editor.getRootElement();
+    const handleFocus = () => {
+      window.activeLexicalEditorId = fieldId;
+    };
+
+    if (rootElement) {
+      rootElement.addEventListener('focus', handleFocus);
+    }
+
+    // Provide a global function to set content into any editor by field ID
+    if (!window.setLexicalEditorContent) {
+      window.setLexicalEditorContent = function(targetFieldId, htmlContent) {
+        const targetEditor = window._lexicalEditors[targetFieldId];
+        if (!targetEditor) {
+          console.error('No Lexical editor found for field ID:', targetFieldId);
+          return;
+        }
+
+        targetEditor.update(() => {
+          const root = $getRoot();
+          root.clear();
+
+          const parser = new DOMParser();
+          const dom = parser.parseFromString(htmlContent, 'text/html');
+          const nodes = $generateNodesFromDOM(targetEditor, dom);
+
+          nodes.forEach(node => {
+            if ($isElementNode(node) || $isDecoratorNode(node)) {
+              root.append(node);
+            } else {
+              const paragraph = $createParagraphNode();
+              paragraph.append(node);
+              root.append(paragraph);
+            }
+          });
+        });
+      };
+    }
+
+    // Convenience function to insert into the currently active editor
+    if (!window.insertIntoActiveLexicalEditor) {
+      window.insertIntoActiveLexicalEditor = function(htmlContent) {
+        const activeId = window.activeLexicalEditorId;
+        if (!activeId) {
+          console.error('No active Lexical editor. Click on an editor first.');
+          return;
+        }
+        window.setLexicalEditorContent(activeId, htmlContent);
+      };
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (rootElement) {
+        rootElement.removeEventListener('focus', handleFocus);
+      }
+      if (window._lexicalEditors) {
+        delete window._lexicalEditors[fieldId];
+      }
+    };
+  }, [editor, documents]);
+
+  return null;
+}
+
+/**
  * EditablePlugin - Controls whether the editor is read-only or editable
  *
  * @param {Object} props
@@ -412,6 +506,7 @@ export default function LexicalEditor({
             <LoadContentPlugin documents={documents} />
             <EditablePlugin editable={editable} />
             <SyncContentPlugin documents={documents} containerId={appContainerId} />
+            <ExternalAPIPlugin documents={documents} />
 
           </div>
         </div>
