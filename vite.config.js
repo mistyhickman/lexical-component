@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     cssInjectedByJsPlugin()
   ],
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('production'),
+  },
   build: {
     lib: {
       entry: './src/lexical-editor-component.jsx',

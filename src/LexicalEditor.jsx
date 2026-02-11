@@ -37,7 +37,10 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 
 // Lexical utility functions - These are used to manipulate editor content
 // The $ prefix is a Lexical convention meaning "this runs inside an editor update"
-import { $getRoot, $createParagraphNode, $createTextNode } from 'lexical';
+import { $getRoot } from 'lexical';
+
+// HTML import/export utilities for preserving HTML formatting
+import { $generateNodesFromDOM, $generateHtmlFromNodes } from '@lexical/html';
 
 // Our custom toolbar component
 import ToolbarPlugin from './ToolbarPlugin';
@@ -78,15 +81,15 @@ function LoadContentPlugin({ documents }) {
           // Parse HTML content into a DOM structure
           // DOMParser is a browser API that converts HTML strings to DOM
           const parser = new DOMParser();
-          const doc = parser.parseFromString(firstDoc.body, 'text/html');
-          // Extract just the text content (strips HTML tags)
-          const textContent = doc.body.textContent || '';
+          const dom = parser.parseFromString(firstDoc.body, 'text/html');
 
-          // Create a new paragraph node and add text to it
-          const paragraph = $createParagraphNode();
-          paragraph.append($createTextNode(textContent));
-          // Add the paragraph to the editor
-          root.append(paragraph);
+          // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
+          const nodes = $generateNodesFromDOM(editor, dom);
+
+          // Append each node to the root
+          nodes.forEach(node => {
+            root.append(node);
+          });
         });
       }
     }
@@ -133,10 +136,8 @@ function SyncContentPlugin({ documents, containerId }) {
     return editor.registerUpdateListener(({ editorState }) => {
       // editorState.read() reads the current state without modifying it
       editorState.read(() => {
-        // Get the editor's root node
-        const root = $getRoot();
-        // Get all text content as a plain string
-        const textContent = root.getTextContent();
+        // Convert editor content to HTML string, preserving all formatting
+        const htmlContent = $generateHtmlFromNodes(editor);
 
         // Update hidden fields for each document
         if (documents && documents.length > 0) {
@@ -145,8 +146,8 @@ function SyncContentPlugin({ documents, containerId }) {
             // Find the hidden input field by its ID
             const hiddenField = document.getElementById(doc.id);
             if (hiddenField) {
-              // Update the field's value with the editor's content
-              hiddenField.value = textContent;
+              // Update the field's value with the editor's HTML content
+              hiddenField.value = htmlContent;
             }
           });
         }
