@@ -979,6 +979,10 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
             borderRadius: '3px',
             fontSize: '13px',
             cursor: 'pointer',
+            width: 'auto',
+            display: 'inline-block',
+            whiteSpace: 'nowrap',
+            maxWidth: '80px',
           }}
           title="Font Size"
         >
@@ -1005,7 +1009,10 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
             borderRadius: '3px',
             fontSize: '13px',
             cursor: 'pointer',
-            minWidth: '140px',
+            width: 'auto',
+            display: 'inline-block',
+            whiteSpace: 'nowrap',
+            maxWidth: '180px',
           }}
           title="Font Family"
           aria-label="Font Family"
@@ -1033,7 +1040,10 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
             borderRadius: '3px',
             fontSize: '13px',
             cursor: 'pointer',
-            minWidth: '120px',
+            width: 'auto',
+            display: 'inline-block',
+            whiteSpace: 'nowrap',
+            maxWidth: '140px',
           }}
           title="Change Case"
           aria-label="Change Case"
