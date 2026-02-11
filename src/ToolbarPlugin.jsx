@@ -35,6 +35,7 @@ import {
 import {
   INSERT_UNORDERED_LIST_COMMAND, // Create bullet list
   INSERT_ORDERED_LIST_COMMAND, // Create numbered list
+  INSERT_CHECK_LIST_COMMAND, // Create check list
   REMOVE_LIST_COMMAND, // Remove list formatting
   insertList,
   $isListNode, // Check if node is a list
@@ -273,6 +274,10 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
   const insertNumberList = () => {
     editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+  };
+
+  const insertCheckList = () => {
+    editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
   };
 
   // Indent/Outdent
@@ -894,6 +899,17 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
           aria-label="Numbered List"
         >
           1.
+        </button>
+      )}
+      {tools.includes('checklist') && (
+        <button
+            type="button"
+          onClick={insertCheckList}
+          style={buttonStyle}
+          title="Check List"
+          aria-label="Check List"
+        >
+          ☑
         </button>
       )}
       {tools.includes('outdent') && (
