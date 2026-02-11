@@ -37,7 +37,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 
 // Lexical utility functions - These are used to manipulate editor content
 // The $ prefix is a Lexical convention meaning "this runs inside an editor update"
-import { $getRoot, $createParagraphNode, $isElementNode, $isDecoratorNode } from 'lexical';
+import { $getRoot, $createParagraphNode, $isElementNode, $isDecoratorNode, $getSelection, $isRangeSelection, $insertNodes } from 'lexical';
 
 // HTML import/export utilities for preserving HTML formatting
 import { $generateNodesFromDOM, $generateHtmlFromNodes } from '@lexical/html';
@@ -195,7 +195,8 @@ function ExternalAPIPlugin({ documents }) {
       };
     }
 
-    // Convenience function to insert into the currently active editor
+    // Insert content at the cursor position in the currently active editor
+    // If cursor is not in the editor, content is appended at the end
     if (!window.insertIntoActiveLexicalEditor) {
       window.insertIntoActiveLexicalEditor = function(htmlContent) {
         const activeId = window.activeLexicalEditorId;
@@ -203,7 +204,36 @@ function ExternalAPIPlugin({ documents }) {
           console.error('No active Lexical editor. Click on an editor first.');
           return;
         }
-        window.setLexicalEditorContent(activeId, htmlContent);
+        const targetEditor = window._lexicalEditors[activeId];
+        if (!targetEditor) {
+          console.error('No Lexical editor found for field ID:', activeId);
+          return;
+        }
+
+        targetEditor.update(() => {
+          const parser = new DOMParser();
+          const dom = parser.parseFromString(htmlContent, 'text/html');
+          const nodes = $generateNodesFromDOM(targetEditor, dom);
+
+          // Check if there's a current selection (cursor in the editor)
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            // Insert at the current cursor position
+            $insertNodes(nodes);
+          } else {
+            // No cursor in editor - append at the end
+            const root = $getRoot();
+            nodes.forEach(node => {
+              if ($isElementNode(node) || $isDecoratorNode(node)) {
+                root.append(node);
+              } else {
+                const paragraph = $createParagraphNode();
+                paragraph.append(node);
+                root.append(paragraph);
+              }
+            });
+          }
+        });
       };
     }
 
