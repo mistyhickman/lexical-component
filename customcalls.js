@@ -4,21 +4,38 @@
  * @param {string} fieldName - The name for the hidden form field
  * @param {string} fieldId   - The ID for the hidden form field (must match an existing hidden input)
  * @param {Object} [options] - Optional configuration overrides
- * @param {string} [options.toollist]     - Space-separated list of toolbar buttons
+ * @param {string} [options.toollist]     - Space-separated list of toolbar buttons (overrides accessLevel)
  * @param {string} [options.editable]     - "true" or "false" (default: "true")
+ * @param {string} [options.accessLevel]  - "level1", "level2", or "level3" (default: "level1")
  * @param {Object} [options.editorSizing] - e.g. { minHeight: "300px", maxHeight: "600px" }
  *
  * Usage:
  *   <input type="hidden" id="myField_id" name="myField" value="">
  *   <script>initializeLexical('myField', 'myField_id');</script>
+ *   <script>initializeLexical('myField', 'myField_id', { accessLevel: 'level2' });</script>
  */
 function initializeLexical(fieldName, fieldId, options) {
     options = options || {};
 
-    var toollist = options.toollist ||
-        'spellcheck undo redo bold italic underline subscript superscript removeformatting selectall ' +
-        'alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent ' +
-        'copy cut paste pasteword fontsize fontfamily fontcase table footnote horizontalrule maximize source';
+    // Define toollist based on access level
+    // level3: Full access - all toolbar options
+    // level2: Standard access - common formatting, no source/maximize/table
+    // level1: Basic access - minimal formatting options
+    var accessLevelTools = {
+        level3:
+            'spellcheck undo redo bold italic underline subscript superscript removeformatting selectall ' +
+            'alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent ' +
+            'copy cut paste pasteword fontsize fontfamily fontcase table footnote horizontalrule maximize source',
+        level2:
+            'undo redo bold italic underline removeformatting selectall ' +
+            'alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent ' +
+            'copy cut paste fontsize fontfamily fontcase',
+        level1:
+            'undo redo bold italic underline bullist numlist'
+    };
+
+    var accessLevel = options.accessLevel || 'level1';
+    var toollist = options.toollist || accessLevelTools[accessLevel] || accessLevelTools['level1'];
 
     var editable = options.editable !== undefined ? options.editable : 'true';
     var containerId = fieldName + '_container';
