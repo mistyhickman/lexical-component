@@ -11,25 +11,33 @@
     <h1>Lexical Editor Test Page</h1>
     <br>
 
-    <!-- Example 1: Default editor with all toolbar options -->
-    <h2>Example 1: Full Editor</h2>
-    <input type="hidden" id="myfield_id" name="myfield" value="This is my test value">
-    <script>initializeLexical('myfield', 'myfield_id');</script>
+    <!-- Level 1: Basic access - undo, redo, bold, italic, underline, lists -->
+    <h2>Level 1: Basic Access</h2>
+    <input type="hidden" id="level1_id" name="level1" value="">
+    <script>initializeLexical('level1', 'level1_id', { accessLevel: 'level1' });</script>
 
     <br>
-    <button type="button" onclick="previewContent('myfield_id')">Preview Content</button>
+    <button type="button" onclick="previewContent('level1_id')">Preview Content</button>
 
     <br><br>
 
-    <!-- Example 2: Editor with custom sizing -->
-    <h2>Example 2: Custom Sizing</h2>
-    <input type="hidden" id="notes_id" name="notes" value="">
-    <script>initializeLexical('notes', 'notes_id', {
-        editorSizing: { minHeight: '150px', maxHeight: '400px' }
-    });</script>
+    <!-- Level 2: Standard access - adds alignment, fonts, checklist, copy/paste -->
+    <h2>Level 2: Standard Access</h2>
+    <input type="hidden" id="level2_id" name="level2" value="">
+    <script>initializeLexical('level2', 'level2_id', { accessLevel: 'level2' });</script>
 
     <br>
-    <button type="button" onclick="previewContent('notes_id')">Preview Content</button>
+    <button type="button" onclick="previewContent('level2_id')">Preview Content</button>
+
+    <br><br>
+
+    <!-- Level 3: Full access - all toolbar options including table, source, maximize -->
+    <h2>Level 3: Full Access</h2>
+    <input type="hidden" id="level3_id" name="level3" value="">
+    <script>initializeLexical('level3', 'level3_id', { accessLevel: 'level3' });</script>
+
+    <br>
+    <button type="button" onclick="previewContent('level3_id')">Preview Content</button>
 
 </body>
 </html>
