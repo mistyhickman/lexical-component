@@ -32,6 +32,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
+import { CodeNode, CodeHighlightNode } from '@lexical/code'; // Code/preformatted blocks
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -387,10 +388,14 @@ export default function LexicalEditor({
     theme: {
       paragraph: 'lexical-paragraph', // Regular paragraphs
       heading: {
-        h1: 'lexical-h1', // Large heading
-        h2: 'lexical-h2', // Medium heading
-        h3: 'lexical-h3', // Small heading
+        h1: 'lexical-h1',
+        h2: 'lexical-h2',
+        h3: 'lexical-h3',
+        h4: 'lexical-h4',
+        h5: 'lexical-h5',
+        h6: 'lexical-h6',
       },
+      code: 'lexical-code-block',
       list: {
         ul: 'lexical-ul', // Unordered list (bullets)
         ol: 'lexical-ol', // Ordered list (numbers)
@@ -427,11 +432,13 @@ export default function LexicalEditor({
     // nodes: Array of custom node types the editor can use
     // These define what types of content the editor supports
     nodes: [
-      HeadingNode, // Enables H1, H2, H3 headings
+      HeadingNode, // Enables H1-H6 headings
       ListNode, // Enables lists (ul/ol)
       ListItemNode, // Enables list items (li)
       QuoteNode, // Enables blockquotes
       LinkNode, // Enables hyperlinks
+      CodeNode, // Enables code/preformatted blocks
+      CodeHighlightNode, // Enables code syntax highlighting
       TableNode, // Enables tables
       TableRowNode, // Enables table rows
       TableCellNode, // Enables table cells

@@ -55,10 +55,13 @@ import { $generateHtmlFromNodes } from '@lexical/html';
 
 // Rich text node creators
 import {
-  $createHeadingNode, // Create heading nodes (H1, H2, H3)
+  $createHeadingNode, // Create heading nodes (H1-H6)
   $createQuoteNode, // Create blockquote nodes
   HeadingTagType
 } from '@lexical/rich-text';
+
+// Code block creator
+import { $createCodeNode } from '@lexical/code';
 
 // More selection utilities
 import { $setBlocksType } from '@lexical/selection';
@@ -598,6 +601,27 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     });
   };
 
+  // Paragraph format
+  const handleParagraphFormat = (e) => {
+    const formatType = e.target.value;
+    if (!formatType) return;
+
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        if (formatType === 'paragraph' || formatType === 'div') {
+          $setBlocksType(selection, () => $createParagraphNode());
+        } else if (formatType === 'code') {
+          $setBlocksType(selection, () => $createCodeNode());
+        } else if (formatType === 'quote') {
+          $setBlocksType(selection, () => $createQuoteNode());
+        } else if (formatType.startsWith('h')) {
+          $setBlocksType(selection, () => $createHeadingNode(formatType));
+        }
+      }
+    });
+  };
+
   // Spell check
   const handleSpellCheck = () => {
     if (spellCheckCallback && spellCheckCallback.fnSpellCheckFunction) {
@@ -701,6 +725,40 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     <>
       {/* Main toolbar container */}
       <div className="lexical-toolbar" style={toolbarStyle}>
+
+        {/* PARAGRAPH FORMAT DROPDOWN */}
+        {tools.includes('formatblock') && (
+          <select
+            onChange={handleParagraphFormat}
+            defaultValue="paragraph"
+            style={{
+              padding: '4px 8px',
+              border: '1px solid #ccc',
+              borderRadius: '3px',
+              fontSize: '13px',
+              cursor: 'pointer',
+              width: 'auto',
+              display: 'inline-block',
+              whiteSpace: 'nowrap',
+              maxWidth: '160px',
+            }}
+            title="Paragraph Format"
+            aria-label="Paragraph Format"
+          >
+            <option value="paragraph">Normal</option>
+            <option value="h1">Heading 1</option>
+            <option value="h2">Heading 2</option>
+            <option value="h3">Heading 3</option>
+            <option value="h4">Heading 4</option>
+            <option value="h5">Heading 5</option>
+            <option value="h6">Heading 6</option>
+            <option value="code">Formatted</option>
+            <option value="quote">Address</option>
+            <option value="div">Normal (DIV)</option>
+          </select>
+        )}
+
+        {tools.includes('formatblock') && <div style={separatorStyle}></div>}
 
         {/* SPELL CHECK BUTTON
             Conditional rendering: Only shows if both conditions are true

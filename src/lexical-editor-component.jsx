@@ -204,6 +204,34 @@ class LexicalEditorElement extends HTMLElement {
           font-weight: bold;
           margin: 0 0 10px 0;
         }
+        .lexical-h4 {
+          font-size: 1em;
+          font-weight: bold;
+          margin: 0 0 10px 0;
+        }
+        .lexical-h5 {
+          font-size: 0.83em;
+          font-weight: bold;
+          margin: 0 0 10px 0;
+        }
+        .lexical-h6 {
+          font-size: 0.67em;
+          font-weight: bold;
+          margin: 0 0 10px 0;
+        }
+
+        /* Code/Preformatted block */
+        .lexical-code-block {
+          background-color: #f5f5f5;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 10px;
+          margin: 0 0 10px 0;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          white-space: pre-wrap;
+          overflow-x: auto;
+        }
 
         /* List styling - Both unordered (ul) and ordered (ol) lists */
         .lexical-ul, .lexical-ol {
