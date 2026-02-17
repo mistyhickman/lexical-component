@@ -32,6 +32,8 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
+import { CodeNode, CodeHighlightNode } from '@lexical/code'; // Code/preformatted blocks
+import { AddressNode, PreformattedNode, DivNode } from './CustomFormatNodes'; // Custom format nodes
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -290,7 +292,11 @@ function SyncContentPlugin({ documents, containerId }) {
       // editorState.read() reads the current state without modifying it
       editorState.read(() => {
         // Convert editor content to HTML string, preserving all formatting
-        const htmlContent = $generateHtmlFromNodes(editor);
+        const rawHtml = $generateHtmlFromNodes(editor);
+
+        // Clean up Lexical-specific artifacts from the HTML output
+        // so the saved HTML is clean and portable
+        const htmlContent = cleanExportedHtml(rawHtml);
 
         // Update hidden fields for each document
         if (documents && documents.length > 0) {
@@ -312,6 +318,57 @@ function SyncContentPlugin({ documents, containerId }) {
   }, [editor, documents, containerId]);
 
   return null;
+}
+
+/**
+ * cleanExportedHtml - Strips Lexical-specific attributes from exported HTML
+ * Exported so it can also be used by ToolbarPlugin for the source view.
+ *
+ * Lexical's $generateHtmlFromNodes adds theme classes (e.g. class="lexical-paragraph"),
+ * direction attributes (dir="ltr"), and wraps text in <span style="white-space: pre-wrap;">.
+ * This function removes those artifacts so the saved HTML is clean, while preserving
+ * any meaningful inline styles (font-size, font-family, etc.) on span elements.
+ */
+export function cleanExportedHtml(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // 1. Remove class attributes that only contain lexical- prefixed classes
+  doc.querySelectorAll('[class]').forEach(el => {
+    const remaining = Array.from(el.classList).filter(c => !c.startsWith('lexical-'));
+    if (remaining.length === 0) {
+      el.removeAttribute('class');
+    } else {
+      el.className = remaining.join(' ');
+    }
+  });
+
+  // 2. Remove dir="ltr" attributes (browser default, not needed in saved HTML)
+  doc.querySelectorAll('[dir="ltr"]').forEach(el => {
+    el.removeAttribute('dir');
+  });
+
+  // 3. Clean up span elements:
+  //    - Unwrap spans whose only style is "white-space: pre-wrap" (Lexical artifact)
+  //    - Keep spans that carry meaningful styles (font-size, color, etc.)
+  //      but strip the white-space: pre-wrap portion from those
+  doc.querySelectorAll('span').forEach(span => {
+    const style = span.getAttribute('style') || '';
+    const cleanStyle = style.replace(/white-space:\s*pre-wrap;?\s*/g, '').trim();
+
+    if (!cleanStyle) {
+      // No meaningful styles — unwrap the span, keeping its child nodes
+      while (span.firstChild) {
+        span.parentNode.insertBefore(span.firstChild, span);
+      }
+      span.parentNode.removeChild(span);
+    } else {
+      // Has meaningful styles — keep the span but drop white-space: pre-wrap
+      span.setAttribute('style', cleanStyle);
+    }
+  });
+
+  return doc.body.innerHTML;
 }
 
 /**
@@ -387,10 +444,14 @@ export default function LexicalEditor({
     theme: {
       paragraph: 'lexical-paragraph', // Regular paragraphs
       heading: {
-        h1: 'lexical-h1', // Large heading
-        h2: 'lexical-h2', // Medium heading
-        h3: 'lexical-h3', // Small heading
+        h1: 'lexical-h1',
+        h2: 'lexical-h2',
+        h3: 'lexical-h3',
+        h4: 'lexical-h4',
+        h5: 'lexical-h5',
+        h6: 'lexical-h6',
       },
+      code: 'lexical-code-block',
       list: {
         ul: 'lexical-ul', // Unordered list (bullets)
         ol: 'lexical-ol', // Ordered list (numbers)
@@ -427,14 +488,19 @@ export default function LexicalEditor({
     // nodes: Array of custom node types the editor can use
     // These define what types of content the editor supports
     nodes: [
-      HeadingNode, // Enables H1, H2, H3 headings
+      HeadingNode, // Enables H1-H6 headings
       ListNode, // Enables lists (ul/ol)
       ListItemNode, // Enables list items (li)
       QuoteNode, // Enables blockquotes
       LinkNode, // Enables hyperlinks
+      CodeNode, // Enables code/preformatted blocks
+      CodeHighlightNode, // Enables code syntax highlighting
       TableNode, // Enables tables
       TableRowNode, // Enables table rows
       TableCellNode, // Enables table cells
+      AddressNode, // Enables <address> blocks
+      PreformattedNode, // Enables <pre> blocks
+      DivNode, // Enables <div> blocks
     ],
 
     // Initial editable state

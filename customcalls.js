@@ -23,11 +23,11 @@ function initializeLexical(fieldName, fieldId, options) {
     // level1: Basic access - minimal formatting options
     var accessLevelTools = {
         level3:
-            'spellcheck undo redo bold italic underline subscript superscript removeformatting selectall ' +
+            'formatblock spellcheck undo redo bold italic underline subscript superscript removeformatting selectall ' +
             'alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent ' +
             'copy cut paste pasteword fontsize fontfamily fontcase table footnote horizontalrule maximize source',
         level2:
-            'undo redo bold italic underline removeformatting selectall ' +
+            'formatblock undo redo bold italic underline removeformatting selectall ' +
             'alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent ' +
             'copy cut paste fontsize fontfamily fontcase',
         level1:
