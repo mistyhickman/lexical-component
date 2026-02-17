@@ -233,6 +233,25 @@ class LexicalEditorElement extends HTMLElement {
           overflow-x: auto;
         }
 
+        /* Address block */
+        .lexical-content-editable address {
+          font-style: italic;
+          margin: 0 0 10px 0;
+        }
+
+        /* Preformatted block (<pre>) */
+        .lexical-content-editable pre {
+          background-color: #f5f5f5;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 10px;
+          margin: 0 0 10px 0;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          white-space: pre-wrap;
+          overflow-x: auto;
+        }
+
         /* List styling - Both unordered (ul) and ordered (ol) lists */
         .lexical-ul, .lexical-ol {
           margin: 0 0 10px 0;

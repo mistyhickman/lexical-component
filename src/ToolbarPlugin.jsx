@@ -60,11 +60,11 @@ import {
   HeadingTagType
 } from '@lexical/rich-text';
 
-// Code block creator
-import { $createCodeNode } from '@lexical/code';
+// Custom format nodes (address, pre, div)
+import { $createAddressNode, $createPreformattedNode, $createDivNode } from './CustomFormatNodes';
 
 // More selection utilities
-import { $setBlocksType } from '@lexical/selection';
+import { $setBlocksType, $patchStyleText } from '@lexical/selection';
 
 // Horizontal rule (line separator)
 import {
@@ -77,6 +77,9 @@ import TableCreatorPlugin from './TableCreatorPlugin';
 
 // Source code view plugin
 import SourceCodePlugin from './SourceCodePlugin';
+
+// HTML cleanup utility
+import { cleanExportedHtml } from './LexicalEditor';
 
 
 
@@ -320,32 +323,18 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   // ===== FONT SIZE =====
   /**
    * handleFontSize - Changes the font size of selected text
+   * Uses $patchStyleText to apply styles through Lexical's node system
+   * so they persist in the editor state and appear in exported HTML.
    * @param {Event} e - The change event from the dropdown
    */
   const handleFontSize = (e) => {
-    // e.target is the <select> dropdown element
-    // e.target.value is the selected option's value (e.g., "16px")
     const size = e.target.value;
-
-    // Update our state to reflect the current font size
     setFontSize(size);
 
-    // Update the editor content
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Get all nodes (pieces of text) in the selection
-        const nodes = selection.getNodes();
-
-        // Loop through each node and apply the font size
-        nodes.forEach(node => {
-          // Get the actual DOM element for this node
-          const element = editor.getElementByKey(node.getKey());
-          if (element) {
-            // Apply inline style to change font size
-            element.style.fontSize = size;
-          }
-        });
+        $patchStyleText(selection, { 'font-size': size });
       }
     });
   };
@@ -353,34 +342,20 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
   // ===== FONT FAMILY =====
   /**
    * handleFontFamily - Changes the font family of selected text
+   * Uses $patchStyleText to apply styles through Lexical's node system
+   * so they persist in the editor state and appear in exported HTML.
    * @param {Event} e - The change event from the dropdown
    */
   const handleFontFamily = (e) => {
     const font = e.target.value;
-
-    // Update our state to reflect the current font family
     setFontFamily(font);
 
-    // Update the editor content
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Get all nodes (pieces of text) in the selection
-        const nodes = selection.getNodes();
-
-        // Loop through each node and apply the font family
-        nodes.forEach(node => {
-          // Get the actual DOM element for this node
-          const element = editor.getElementByKey(node.getKey());
-          if (element) {
-            // Apply inline style to change font family
-            // If 'default' is selected, remove the inline style to use the default font
-            if (font === 'default') {
-              element.style.fontFamily = '';
-            } else {
-              element.style.fontFamily = font;
-            }
-          }
+        // Passing null removes the style; otherwise set the font family
+        $patchStyleText(selection, {
+          'font-family': font === 'default' ? null : font,
         });
       }
     });
@@ -466,8 +441,8 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
       // Switching TO source view: Generate HTML from editor content
       editor.getEditorState().read(() => {
         // $generateHtmlFromNodes converts Lexical nodes to HTML string
-        const htmlString = $generateHtmlFromNodes(editor, null);
-        setSourceHTML(htmlString); // Save HTML in state
+        const htmlString = cleanExportedHtml($generateHtmlFromNodes(editor, null));
+        setSourceHTML(htmlString); // Save cleaned HTML in state
         setShowSource(true); // Show the source view
       });
     } else {
@@ -569,26 +544,14 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         // Get all nodes in the selection
         const nodes = selection.getNodes();
 
-        // Remove inline styles from DOM elements
         nodes.forEach(node => {
-          const element = editor.getElementByKey(node.getKey());
-          if (element) {
-            // Clear all inline styles
-            element.style.cssText = '';
-          }
-
-          // If it's a text node, remove all formatting flags
+          // If it's a text node, remove all formatting flags (bold, italic, etc.)
           if (node.getType() === 'text') {
-            // Clear all text format flags (bold, italic, underline, etc.)
             node.setFormat(0);
+            // Clear any inline styles (font-size, font-family, etc.)
+            node.setStyle('');
           }
         });
-
-        // Get the plain text content
-        const plainText = selection.getTextContent();
-
-        // Replace the selection with plain text
-        selection.insertText(plainText);
       }
     });
   };
@@ -609,13 +572,20 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        if (formatType === 'paragraph' || formatType === 'div') {
+        if (formatType === 'paragraph') {
+          // Normal → <p>
           $setBlocksType(selection, () => $createParagraphNode());
-        } else if (formatType === 'code') {
-          $setBlocksType(selection, () => $createCodeNode());
-        } else if (formatType === 'quote') {
-          $setBlocksType(selection, () => $createQuoteNode());
+        } else if (formatType === 'div') {
+          // Normal (DIV) → <div>
+          $setBlocksType(selection, () => $createDivNode());
+        } else if (formatType === 'pre') {
+          // Formatted → <pre>
+          $setBlocksType(selection, () => $createPreformattedNode());
+        } else if (formatType === 'address') {
+          // Address → <address>
+          $setBlocksType(selection, () => $createAddressNode());
         } else if (formatType.startsWith('h')) {
+          // Headings → <h1> through <h6>
           $setBlocksType(selection, () => $createHeadingNode(formatType));
         }
       }
@@ -752,8 +722,8 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
             <option value="h4">Heading 4</option>
             <option value="h5">Heading 5</option>
             <option value="h6">Heading 6</option>
-            <option value="code">Formatted</option>
-            <option value="quote">Address</option>
+            <option value="pre">Formatted</option>
+            <option value="address">Address</option>
             <option value="div">Normal (DIV)</option>
           </select>
         )}
