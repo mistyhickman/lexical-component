@@ -402,6 +402,7 @@ export default function LexicalEditor({
   editorSizing = { minHeight: '200px', maxHeight: '350px', resize: 'vertical' },
   toolList = 'bold italic underline strikethrough code link unlink ul ol quote undo redo',
   editable = true,
+  buildLetterOnComplete = false,
 }) {
   /**
    * useState - A React Hook for managing component state
@@ -556,6 +557,7 @@ export default function LexicalEditor({
           <ToolbarPlugin
             toolList={toolList}
             inline={inlineToolbar}
+            buildLetterOnComplete={buildLetterOnComplete}
           />
 
           <div className="lexical-editor-inner">

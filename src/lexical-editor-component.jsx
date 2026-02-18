@@ -48,6 +48,9 @@ class LexicalEditorElement extends HTMLElement {
     // Check if editor should be editable
     const editable = this.getAttribute('editable') !== 'false';
 
+    // Check if build letter on complete is enabled (default: false)
+    const buildLetterOnComplete = this.getAttribute('buildletteroncomplete') === 'true';
+
     // Get the list of tools to show in toolbar, or use defaults
     const toolList = this.getAttribute('toollist') || 'bold italic underline strikethrough code link unlink ul ol quote undo redo';
 
@@ -115,6 +118,7 @@ class LexicalEditorElement extends HTMLElement {
         editorSizing={editorSizing}            // Size configuration object
         toolList={toolList}                    // String of tools to show
         editable={editable}                    // Whether editor is editable
+        buildLetterOnComplete={buildLetterOnComplete} // Whether to build letter on spell check complete
       />
     );
 

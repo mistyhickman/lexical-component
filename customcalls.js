@@ -8,6 +8,7 @@
  * @param {string} [options.editable]     - "true" or "false" (default: "true")
  * @param {string} [options.accessLevel]  - "level1", "level2", or "level3" (default: "level1")
  * @param {Object} [options.editorSizing] - e.g. { minHeight: "300px", maxHeight: "600px" }
+ * @param {string} [options.buildletteroncomplete] - "true" or "false" (default: "false")
  *
  * Usage:
  *   <input type="hidden" id="myField_id" name="myField" value="">
@@ -38,6 +39,7 @@ function initializeLexical(fieldName, fieldId, options) {
     var toollist = options.toollist || accessLevelTools[accessLevel] || accessLevelTools['level1'];
 
     var editable = options.editable !== undefined ? options.editable : 'true';
+    var buildletteroncomplete = options.buildletteroncomplete !== undefined ? options.buildletteroncomplete : 'false';
     var containerId = fieldName + '_container';
 
     // Build the aryeditordocuments JSON
@@ -49,6 +51,7 @@ function initializeLexical(fieldName, fieldId, options) {
     editorEl.setAttribute('aryeditordocuments', docsJson);
     editorEl.setAttribute('toollist', toollist);
     editorEl.setAttribute('editable', editable);
+    editorEl.setAttribute('buildletteroncomplete', buildletteroncomplete);
 
     // Apply editor sizing if provided
     if (options.editorSizing) {
