@@ -81,6 +81,9 @@ import SourceCodePlugin from './SourceCodePlugin';
 // HTML cleanup utility
 import { cleanExportedHtml } from './LexicalEditor';
 
+// Color picker
+import ColorPickerPlugin from './ColorPickerPlugin';
+
 
 
 /**
@@ -130,6 +133,10 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
   // Table creator popover state
   const [tableAnchorEl, setTableAnchorEl] = useState(null);
+
+  // Color picker popover states
+  const [textColorAnchorEl, setTextColorAnchorEl] = useState(null);
+  const [bgColorAnchorEl, setBgColorAnchorEl] = useState(null);
 
   /**
    * useRef - Creates a reference to a DOM element
@@ -357,6 +364,43 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         $patchStyleText(selection, {
           'font-family': font === 'default' ? null : font,
         });
+      }
+    });
+  };
+
+  // ===== TEXT COLOR =====
+  const handleTextColorClick = (event) => {
+    setTextColorAnchorEl(event.currentTarget);
+  };
+
+  const handleTextColorClose = () => {
+    setTextColorAnchorEl(null);
+  };
+
+  const applyTextColor = (color) => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        // null removes the color (resets to automatic/default)
+        $patchStyleText(selection, { color: color });
+      }
+    });
+  };
+
+  // ===== BACKGROUND COLOR =====
+  const handleBgColorClick = (event) => {
+    setBgColorAnchorEl(event.currentTarget);
+  };
+
+  const handleBgColorClose = () => {
+    setBgColorAnchorEl(null);
+  };
+
+  const applyBgColor = (color) => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        $patchStyleText(selection, { 'background-color': color });
       }
     });
   };
@@ -1100,6 +1144,31 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         </select>
       )}
 
+      {tools.includes('textcolor') && (
+        <button
+            type="button"
+          onClick={handleTextColorClick}
+          style={buttonStyle}
+          title="Text Color"
+          aria-label="Text Color"
+        >
+          <span style={{ borderBottom: '3px solid #ff0000', lineHeight: '1' }}>A</span>
+        </button>
+      )}
+      {tools.includes('bgcolor') && (
+        <button
+            type="button"
+          onClick={handleBgColorClick}
+          style={buttonStyle}
+          title="Background Color"
+          aria-label="Background Color"
+        >
+          <span style={{ backgroundColor: '#ffff00', padding: '0 3px', lineHeight: '1' }}>A</span>
+        </button>
+      )}
+
+      {(tools.includes('textcolor') || tools.includes('bgcolor')) && <div style={separatorStyle}></div>}
+
       {tools.includes('table') && (
         <button
             type="button"
@@ -1176,6 +1245,24 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
         handleClose={handleTableClose}
         anchorEl={tableAnchorEl}
         dynamicPosition={{ vertical: 'bottom', horizontal: 'left' }}
+      />
+    )}
+
+    {/* Text Color Picker Popover */}
+    {tools.includes('textcolor') && (
+      <ColorPickerPlugin
+        anchorEl={textColorAnchorEl}
+        onClose={handleTextColorClose}
+        onSelectColor={applyTextColor}
+      />
+    )}
+
+    {/* Background Color Picker Popover */}
+    {tools.includes('bgcolor') && (
+      <ColorPickerPlugin
+        anchorEl={bgColorAnchorEl}
+        onClose={handleBgColorClose}
+        onSelectColor={applyBgColor}
       />
     )}
 

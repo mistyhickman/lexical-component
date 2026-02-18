@@ -25,11 +25,11 @@ function initializeLexical(fieldName, fieldId, options) {
         level3:
             'formatblock spellcheck undo redo bold italic underline subscript superscript removeformatting selectall ' +
             'alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent ' +
-            'copy cut paste pasteword fontsize fontfamily fontcase table footnote horizontalrule maximize source',
+            'copy cut paste pasteword fontsize fontfamily fontcase textcolor bgcolor table footnote horizontalrule maximize source',
         level2:
             'formatblock undo redo bold italic underline removeformatting selectall ' +
             'alignleft aligncenter alignright alignjustify bullist numlist checklist outdent indent ' +
-            'copy cut paste fontsize fontfamily fontcase',
+            'copy cut paste fontsize fontfamily fontcase textcolor bgcolor',
         level1:
             'undo redo bold italic underline bullist numlist'
     };
