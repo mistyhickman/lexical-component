@@ -97,7 +97,7 @@ const LowPriority = 1;
  * @param {string} props.toolList - Space-separated list of tools to show
  * @param {boolean} props.inline - Whether toolbar should stick to top when scrolling
  */
-export default function ToolbarPlugin({ toolList, inline = true }) {
+export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnComplete = false }) {
   // Get the editor instance
   const [editor] = useLexicalComposerContext();
 
@@ -637,7 +637,7 @@ export default function ToolbarPlugin({ toolList, inline = true }) {
   // Spell check — calls external launchSpellCheck() function from include file
   const handleSpellCheck = () => {
     if (typeof window.launchSpellCheck === 'function') {
-      window.launchSpellCheck();
+      window.launchSpellCheck(buildLetterOnComplete);
     } else {
       console.warn('launchSpellCheck() is not defined. Make sure the spell check script is included on the page.');
     }
