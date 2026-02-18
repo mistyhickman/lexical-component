@@ -96,9 +96,8 @@ const LowPriority = 1;
  * @param {Object} props
  * @param {string} props.toolList - Space-separated list of tools to show
  * @param {boolean} props.inline - Whether toolbar should stick to top when scrolling
- * @param {Object} props.spellCheckCallback - Spell check configuration
  */
-export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallback }) {
+export default function ToolbarPlugin({ toolList, inline = true }) {
   // Get the editor instance
   const [editor] = useLexicalComposerContext();
 
@@ -635,14 +634,10 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     });
   };
 
-  // Spell check
+  // Spell check — calls external launchSpellCheck() function from include file
   const handleSpellCheck = () => {
-    if (spellCheckCallback && spellCheckCallback.fnSpellCheckFunction) {
-      const fn = window[spellCheckCallback.fnSpellCheckFunction];
-      if (typeof fn === 'function') {
-        const args = spellCheckCallback.arySpellCheckFunctionArgs || [];
-        fn(...args);
-      }
+    if (typeof window.launchSpellCheck === 'function') {
+      window.launchSpellCheck();
     }
   };
 
@@ -773,16 +768,14 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
 
         {tools.includes('formatblock') && <div style={separatorStyle}></div>}
 
-        {/* SPELL CHECK BUTTON
-            Conditional rendering: Only shows if both conditions are true
-            && is logical AND: left && right means "if left is true, render right" */}
-        {tools.includes('spellcheck') && spellCheckCallback && (
+        {/* SPELL CHECK BUTTON */}
+        {tools.includes('spellcheck') && (
           <button
             type="button"
             onClick={handleSpellCheck}
             style={buttonStyle}
-            title="Spell Check" // Tooltip on hover
-            aria-label="Spell Check" // For screen readers (accessibility)
+            title="Spell Check Content"
+            aria-label="Spell Check Content"
           >
             ABC✓
           </button>

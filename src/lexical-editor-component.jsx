@@ -57,7 +57,6 @@ class LexicalEditorElement extends HTMLElement {
     // Initialize with default values
     let documents = []; // Will hold array of document objects with content to load
     let editorSizing = { minHeight: '200px', maxHeight: '350px', resize: 'vertical' }; // Default editor dimensions
-    let spellCheckCallback = null; // Optional spell check configuration
 
     // Try to parse the documents array
     // We use try/catch because JSON.parse() will throw an error if the JSON is invalid
@@ -95,15 +94,6 @@ class LexicalEditorElement extends HTMLElement {
       console.error('Error parsing editorsizing:', e);
     }
 
-    // Try to parse the spell check callback configuration
-    try {
-      const spellCheckAttr = this.getAttribute('objspellcheckcallback');
-      if (spellCheckAttr) {
-        spellCheckCallback = JSON.parse(spellCheckAttr);
-      }
-    } catch (e) {
-      console.error('Error parsing objspellcheckcallback:', e);
-    }
 
     // ===== CREATE AND RENDER THE REACT COMPONENT =====
 
@@ -125,7 +115,6 @@ class LexicalEditorElement extends HTMLElement {
         editorSizing={editorSizing}            // Size configuration object
         toolList={toolList}                    // String of tools to show
         editable={editable}                    // Whether editor is editable
-        spellCheckCallback={spellCheckCallback} // Spell check configuration
       />
     );
 
