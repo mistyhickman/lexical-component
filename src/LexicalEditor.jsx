@@ -394,7 +394,6 @@ export function cleanExportedHtml(html) {
  * @param {Object} props.editorSizing - Size constraints (min/max height, resize)
  * @param {string} props.toolList - Space-separated list of toolbar buttons
  * @param {boolean} props.editable - Whether editor allows editing
- * @param {Object} props.spellCheckCallback - Spell check configuration
  */
 export default function LexicalEditor({
   appContainerId,
@@ -403,7 +402,6 @@ export default function LexicalEditor({
   editorSizing = { minHeight: '200px', maxHeight: '350px', resize: 'vertical' },
   toolList = 'bold italic underline strikethrough code link unlink ul ol quote undo redo',
   editable = true,
-  spellCheckCallback = null
 }) {
   /**
    * useState - A React Hook for managing component state
@@ -558,7 +556,6 @@ export default function LexicalEditor({
           <ToolbarPlugin
             toolList={toolList}
             inline={inlineToolbar}
-            spellCheckCallback={spellCheckCallback}
           />
 
           <div className="lexical-editor-inner">
