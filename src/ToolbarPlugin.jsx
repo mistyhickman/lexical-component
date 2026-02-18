@@ -638,6 +638,8 @@ export default function ToolbarPlugin({ toolList, inline = true }) {
   const handleSpellCheck = () => {
     if (typeof window.launchSpellCheck === 'function') {
       window.launchSpellCheck();
+    } else {
+      console.warn('launchSpellCheck() is not defined. Make sure the spell check script is included on the page.');
     }
   };
 
