@@ -67,10 +67,7 @@ import { $createAddressNode, $createPreformattedNode, $createDivNode } from './C
 import { $setBlocksType, $patchStyleText } from '@lexical/selection';
 
 // Horizontal rule (line separator)
-import {
-  INSERT_HORIZONTAL_RULE_COMMAND,
-  $createHorizontalRuleNode,
-} from '@lexical/react/LexicalHorizontalRuleNode';
+import { $createHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 
 // Table utilities
 import TableCreatorPlugin from './TableCreatorPlugin';
@@ -427,15 +424,17 @@ export default function ToolbarPlugin({ toolList, inline = true, spellCheckCallb
     }
   };
 
-  // Horizontal rule
+  // Horizontal rule — insert directly to avoid extra empty paragraphs
   const insertHorizontalRule = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        const paragraph = $createParagraphNode();
-        selection.insertNodes([paragraph]);
-        // Insert HR as text for now
-        selection.insertText('───────────────────────────────────');
+        const anchorNode = selection.anchor.getNode();
+        const topLevelElement = anchorNode.getTopLevelElement();
+        if (topLevelElement) {
+          const hrNode = $createHorizontalRuleNode();
+          topLevelElement.insertAfter(hrNode);
+        }
       }
     });
   };

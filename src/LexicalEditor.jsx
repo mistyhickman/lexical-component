@@ -25,6 +25,8 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'; // Enables bullet
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'; // Enables clickable check lists
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin'; // Tab key for indentation
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'; // Enables table functionality
+import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin'; // Enables horizontal rule
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'; // Horizontal rule node
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary'; // Catches and handles errors
 
 // Lexical node types - These define what kind of content the editor can handle
@@ -501,6 +503,7 @@ export default function LexicalEditor({
       AddressNode, // Enables <address> blocks
       PreformattedNode, // Enables <pre> blocks
       DivNode, // Enables <div> blocks
+      HorizontalRuleNode, // Enables <hr> elements
     ],
 
     // Initial editable state
@@ -601,6 +604,7 @@ export default function LexicalEditor({
             <TabIndentationPlugin /> {/* Tab key to indent */}
             <AutoFocusPlugin /> {/* Focus editor when page loads */}
             <TablePlugin hasCellMerge={false} hasCellBackgroundColor={false} /> {/* Table functionality */}
+            <HorizontalRulePlugin /> {/* Horizontal rule (<hr>) support */}
 
             {/* Our custom plugins */}
             <LoadContentPlugin documents={documents} />
