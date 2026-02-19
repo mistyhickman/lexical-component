@@ -34,7 +34,6 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
-import { CodeNode, CodeHighlightNode } from '@lexical/code'; // Code/preformatted blocks
 import { AddressNode, PreformattedNode, DivNode } from './CustomFormatNodes'; // Custom format nodes
 
 // Hook to access the Lexical editor instance from within plugins
@@ -494,8 +493,6 @@ export default function LexicalEditor({
       ListItemNode, // Enables list items (li)
       QuoteNode, // Enables blockquotes
       LinkNode, // Enables hyperlinks
-      CodeNode, // Enables code/preformatted blocks
-      CodeHighlightNode, // Enables code syntax highlighting
       TableNode, // Enables tables
       TableRowNode, // Enables table rows
       TableCellNode, // Enables table cells
