@@ -43,42 +43,6 @@ All toolbar items are passed as a space-delimited string in the `toollist` param
 - **maximize** - Toggle fullscreen mode
 - **source** - View/edit HTML source code
 
-## Usage Examples
-
-### Minimal Toolbar
-```html
-<lexical-editor 
-    fieldname="simple"
-    toollist="bold italic undo redo">
-```
-
-### Standard Toolbar
-```html
-<lexical-editor
-    fieldname="standard"
-    toollist="bold italic underline bullist numlist alignleft aligncenter undo redo">
-```
-
-### Complete Toolbar
-```html
-<lexical-editor
-    fieldname="complete"
-    toollist="spellcheck undo redo bold italic underline subscript superscript alignleft aligncenter alignright alignjustify bullist numlist outdent indent copy cut paste pasteword fontsize fontcase table footnote horizontalrule maximize source">
-```
-
-### Writer's Toolbar
-```html
-<lexical-editor
-    fieldname="writer"
-    toollist="bold italic underline bullist numlist alignleft aligncenter alignright table footnote horizontalrule maximize undo redo">
-```
-
-### Technical/Scientific Toolbar
-```html
-<lexical-editor
-    fieldname="technical"
-    toollist="bold italic underline subscript superscript fontsize table footnote undo redo">
-```
 
 ## Tool Behavior Notes
 
@@ -92,11 +56,6 @@ All toolbar items are passed as a space-delimited string in the `toollist` param
   - 2 = lowercase  
   - 3 = Title Case
 - Applies to selected text
-
-### Table
-- Prompts for number of rows
-- Prompts for number of columns
-- Inserts basic HTML table
 
 ### Footnote
 - Prompts for footnote text
@@ -120,54 +79,7 @@ All toolbar items are passed as a space-delimited string in the `toollist` param
 - Useful when copying from Word/other rich text sources
 - Pastes as plain text only
 
-### Spell Check
-- Requires spell check callback function
-- Example:
-```html
-<script>
-function mySpellCheck(arg1, arg2) {
-    // Your spell check logic
-}
-</script>
 
-<lexical-editor
-    fieldname="editor"
-    toollist="spellcheck bold italic undo redo"
-    spellcheckfunction="mySpellCheck"
-    spellcheckargs="#['value1', 'value2']#">
-```
-
-## Recommended Toolbar Combinations
-
-### Email Editor
-```
-bold italic underline bullist numlist undo redo
-```
-
-### Documentation Editor
-```
-bold italic underline subscript superscript bullist numlist table footnote horizontalrule source undo redo
-```
-
-### Form Comment Field
-```
-bold italic undo redo
-```
-
-### Full-Featured Editor
-```
-spellcheck undo redo bold italic underline subscript superscript alignleft aligncenter alignright bullist numlist indent outdent fontsize table footnote horizontalrule maximize source
-```
-
-## Visual Toolbar Separators
-
-The toolbar automatically adds visual separators (vertical lines) between logical groups:
-- After undo/redo
-- After text formatting (bold/italic/underline)
-- After alignment tools
-- After list/indent tools
-- After clipboard tools
-- After table/document tools
 
 ## Customizing Toolbar Appearance
 
