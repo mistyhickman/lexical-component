@@ -92,6 +92,9 @@ function LoadContentPlugin({ documents }) {
         htmlContent = firstDoc.body;
       }
 
+      // DEBUG: Log what's being loaded from the hidden field
+      console.log('[Lexical DEBUG] LoadContentPlugin - hidden field value:', htmlContent);
+
       if (htmlContent) {
         // editor.update() - The ONLY way to modify editor content
         // It takes a function that runs inside Lexical's update cycle
@@ -298,6 +301,9 @@ function SyncContentPlugin({ documents, containerId }) {
         // Clean up Lexical-specific artifacts from the HTML output
         // so the saved HTML is clean and portable
         const htmlContent = cleanExportedHtml(rawHtml);
+
+        // DEBUG: Log what's being synced to hidden field
+        console.log('[Lexical DEBUG] SyncContentPlugin - writing to hidden field:', htmlContent);
 
         // Update hidden fields for each document
         if (documents && documents.length > 0) {
