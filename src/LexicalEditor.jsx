@@ -349,6 +349,11 @@ export function cleanExportedHtml(html) {
     el.removeAttribute('dir');
   });
 
+  // 2b. Remove spellcheck attributes (added by some Lexical nodes, not needed in saved HTML)
+  doc.querySelectorAll('[spellcheck]').forEach(el => {
+    el.removeAttribute('spellcheck');
+  });
+
   // 3. Clean up span elements:
   //    - Unwrap spans whose only style is "white-space: pre-wrap" (Lexical artifact)
   //    - Keep spans that carry meaningful styles (font-size, color, etc.)

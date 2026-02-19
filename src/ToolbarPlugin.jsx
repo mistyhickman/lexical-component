@@ -25,9 +25,10 @@ import {
   $getSelection, // Get current text selection
   $isRangeSelection, // Check if selection is a text range
   $createParagraphNode, // Create paragraph node
-  $createTextNode, // Create text node
   $getRoot, // Get root node of editor
   $selectAll, // Select all content in editor
+  $isElementNode, // Check if node is an element
+  $isDecoratorNode, // Check if node is a decorator
 } from 'lexical';
 
 
@@ -51,7 +52,7 @@ import { $isParentElementRTL, $wrapNodes, $isAtNodeEnd } from '@lexical/selectio
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 
 // HTML generation for source view
-import { $generateHtmlFromNodes } from '@lexical/html';
+import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 
 // Rich text node creators
 import {
@@ -488,9 +489,8 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         setShowSource(true); // Show the source view
       });
     } else {
-      // Switching AWAY from source view: Just hide it
-      // Don't apply changes yet - user must click "Apply Changes"
-      setShowSource(false);
+      // Switching AWAY from source view: Apply the edited HTML back to the editor
+      applySourceChanges();
     }
   };
 
@@ -517,24 +517,24 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         root.clear();
 
         // Parse the HTML string into a DOM document
-        // DOMParser is a browser API for parsing HTML/XML strings
         const parser = new DOMParser();
-        const doc = parser.parseFromString(sourceHTML, 'text/html');
+        const dom = parser.parseFromString(sourceHTML, 'text/html');
 
-        // Check for parsing errors
-        const parserError = doc.querySelector('parsererror');
-        if (parserError) {
-          throw new Error('Invalid HTML syntax');
-        }
+        // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
+        const nodes = $generateNodesFromDOM(editor, dom);
 
-        // Extract just the text content (strips HTML tags)
-        // This is simplified - a full implementation would preserve formatting
-        const textContent = doc.body.textContent || '';
-
-        // Create a new paragraph with the text
-        const paragraph = $createParagraphNode();
-        paragraph.append($createTextNode(textContent));
-        root.append(paragraph);
+        // Append each node to the root
+        // Root can only accept block-level nodes (ElementNode, DecoratorNode)
+        // Inline nodes (text, line breaks) must be wrapped in a paragraph first
+        nodes.forEach(node => {
+          if ($isElementNode(node) || $isDecoratorNode(node)) {
+            root.append(node);
+          } else {
+            const paragraph = $createParagraphNode();
+            paragraph.append(node);
+            root.append(paragraph);
+          }
+        });
       });
 
       // Clear error and hide source view after applying changes
