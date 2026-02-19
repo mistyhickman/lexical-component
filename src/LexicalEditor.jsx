@@ -456,7 +456,6 @@ export default function LexicalEditor({
         h5: 'lexical-h5',
         h6: 'lexical-h6',
       },
-      code: 'lexical-code-block',
       list: {
         ul: 'lexical-ul', // Unordered list (bullets)
         ol: 'lexical-ol', // Ordered list (numbers)
