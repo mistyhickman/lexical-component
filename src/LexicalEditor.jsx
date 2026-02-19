@@ -109,8 +109,20 @@ function LoadContentPlugin({ documents }) {
           const parser = new DOMParser();
           const dom = parser.parseFromString(htmlContent, 'text/html');
 
+          // DEBUG: Log what DOMParser produced
+          console.log('[Lexical DEBUG] DOMParser body innerHTML:', dom.body.innerHTML);
+          console.log('[Lexical DEBUG] DOMParser body childNodes:', Array.from(dom.body.childNodes).map(n => n.nodeName));
+
           // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
           const nodes = $generateNodesFromDOM(editor, dom);
+
+          // DEBUG: Log each node type created
+          console.log('[Lexical DEBUG] Node count:', nodes.length);
+          nodes.forEach((node, i) => {
+            const type = node.getType();
+            const text = node.getTextContent ? node.getTextContent() : '';
+            console.log(`[Lexical DEBUG] Node[${i}]: type="${type}", text="${text}"`);
+          });
 
           // Append each node to the root
           // Root can only accept block-level nodes (ElementNode, DecoratorNode)
@@ -125,7 +137,20 @@ function LoadContentPlugin({ documents }) {
               root.append(paragraph);
             }
           });
+
+          // DEBUG: Log root children after appending
+          const rootChildren = root.getChildren();
+          console.log('[Lexical DEBUG] Root children after load:', rootChildren.map(c => c.getType()));
         });
+
+        // DEBUG: After a short delay, check what the editor exports
+        setTimeout(() => {
+          editor.getEditorState().read(() => {
+            const exportedHtml = $generateHtmlFromNodes(editor, null);
+            console.log('[Lexical DEBUG] Exported HTML after load (raw):', exportedHtml);
+            console.log('[Lexical DEBUG] Exported HTML after load (clean):', cleanExportedHtml(exportedHtml));
+          });
+        }, 500);
       }
     }
   }, [editor, documents]); // Run this effect when editor or documents change
