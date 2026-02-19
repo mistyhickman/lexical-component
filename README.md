@@ -30,7 +30,7 @@ npm run dev
 Then open http://localhost:5173 in your browser. You should see test editors.
 Press Ctrl+C to stop the dev server when done.
 
-## ☐ Step 4: Add build file to web application
+## ☐ Step 4: Add build file to web application outside of this repo
 - [ ] Copy `dist/lexical-editor.iife.js` to your application web root's folder (or other folder)
 - [ ] Example: `C:\wwwroot\mysite\lexical-editor.iife.js`
 
@@ -43,12 +43,10 @@ Press Ctrl+C to stop the dev server when done.
 <input type="hidden" id="myfield_id" name="myfield" value="">
 
 <!--- Add the editor --->
-<lexical-editor
-    appcontainerid="myfield_container"
-    aryeditordocuments='[{"name":"myfield","id":"myfield_id","body":""}]'
-    toollist="bold italic underline ul ol undo redo"
-></lexical-editor>
+<script>initializeLexical('myfield', 'myfield_id', { accessLevel: 1, buildletteroncoplete: 'false'});</script>
 ```
+
+<!--- See customcalls.js for all available parameters and options --->
 
 - [ ] Save and view in browser
 - [ ] You should see an editor with Bold, Italic, Underline, etc buttons
