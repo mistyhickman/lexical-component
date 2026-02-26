@@ -236,14 +236,19 @@ export class StyleSheetNode extends DecoratorNode {
     return { element };
   }
 
-  // Renders as a hidden span in the editor — nothing visible to the user
+  // Returns an actual <style> element so the CSS rules are applied visually
+  // in the editor. Browsers process <style> elements even inside contentEditable.
   createDOM() {
-    const element = document.createElement('span');
-    element.style.display = 'none';
+    const element = document.createElement('style');
+    element.textContent = this.__styleContent;
     return element;
   }
 
-  updateDOM() {
+  updateDOM(prevNode, dom) {
+    // Update the style content in-place if it changed
+    if (prevNode.__styleContent !== this.__styleContent) {
+      dom.textContent = this.__styleContent;
+    }
     return false;
   }
 
