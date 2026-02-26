@@ -10,7 +10,7 @@
  *   getType, clone, createDOM, updateDOM, importDOM, exportDOM, importJSON, exportJSON
  */
 
-import { ElementNode, $applyNodeReplacement } from 'lexical';
+import { ElementNode, DecoratorNode, $applyNodeReplacement } from 'lexical';
 
 // =====================================================================
 // AddressNode — wraps content in an <address> HTML element
@@ -199,4 +199,73 @@ export function $createDivNode() {
 
 export function $isDivNode(node) {
   return node instanceof DivNode;
+}
+
+// =====================================================================
+// StyleSheetNode — stores a <style> block
+// Invisible in the visual editor, but preserved in HTML export/import
+// so that <style> tags added via source view survive the round-trip
+// =====================================================================
+
+export class StyleSheetNode extends DecoratorNode {
+  static getType() {
+    return 'stylesheet';
+  }
+
+  static clone(node) {
+    return new StyleSheetNode(node.__styleContent, node.__key);
+  }
+
+  constructor(styleContent, key) {
+    super(key);
+    this.__styleContent = styleContent;
+  }
+
+  static importDOM() {
+    return {
+      style: () => ({
+        conversion: (element) => ({ node: $createStyleSheetNode(element.textContent) }),
+        priority: 0,
+      }),
+    };
+  }
+
+  exportDOM() {
+    const element = document.createElement('style');
+    element.textContent = this.__styleContent;
+    return { element };
+  }
+
+  // Renders as a hidden span in the editor — nothing visible to the user
+  createDOM() {
+    const element = document.createElement('span');
+    element.style.display = 'none';
+    return element;
+  }
+
+  updateDOM() {
+    return false;
+  }
+
+  static importJSON(serializedNode) {
+    return $createStyleSheetNode(serializedNode.styleContent);
+  }
+
+  exportJSON() {
+    return {
+      ...super.exportJSON(),
+      type: 'stylesheet',
+      styleContent: this.__styleContent,
+      version: 1,
+    };
+  }
+
+  // DecoratorNode requires decorate() — return null to render nothing in the editor
+  decorate() {
+    return null;
+  }
+}
+
+export function $createStyleSheetNode(styleContent) {
+  return new StyleSheetNode(styleContent);
 }
