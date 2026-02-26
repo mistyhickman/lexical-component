@@ -61,8 +61,8 @@ import {
   HeadingTagType
 } from '@lexical/rich-text';
 
-// Custom format nodes (address, pre, div)
-import { $createAddressNode, $createPreformattedNode, $createDivNode } from './CustomFormatNodes';
+// Custom format nodes (address, pre, div, stylesheet)
+import { $createAddressNode, $createPreformattedNode, $createDivNode, $createStyleSheetNode } from './CustomFormatNodes';
 
 // More selection utilities
 import { $setBlocksType, $patchStyleText } from '@lexical/selection';
@@ -481,21 +481,14 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    */
   const toggleSource = () => {
     if (!showSource) {
-      // Switching TO source view: use stored raw HTML if available (set by a previous
-      // source edit), otherwise generate from the current Lexical editor state
-      const fieldId = documents?.[0]?.id;
-      const storedRawHtml = fieldId && window._lexicalRawHtml?.[fieldId];
-
-      if (storedRawHtml) {
-        setSourceHTML(storedRawHtml);
+      // Switching TO source view: generate from current Lexical editor state.
+      // StyleSheetNodes in the tree are exported via exportDOM() so <style> tags
+      // appear correctly in the source even after the user has typed in the editor.
+      editor.getEditorState().read(() => {
+        const htmlString = cleanExportedHtml($generateHtmlFromNodes(editor, null));
+        setSourceHTML(htmlString);
         setShowSource(true);
-      } else {
-        editor.getEditorState().read(() => {
-          const htmlString = cleanExportedHtml($generateHtmlFromNodes(editor, null));
-          setSourceHTML(htmlString);
-          setShowSource(true);
-        });
-      }
+      });
     } else {
       // Switching AWAY from source view: Apply the edited HTML back to the editor
       applySourceChanges();
@@ -519,40 +512,32 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    */
   const applySourceChanges = () => {
     try {
-      // Store the raw source HTML verbatim and write it directly to the hidden field.
-      // This bypasses Lexical's lossy import/export so the exact HTML the user typed
-      // is always preserved — including <style> tags, comments, custom attributes, etc.
-      if (!window._lexicalRawHtml) window._lexicalRawHtml = {};
+      // Write the raw HTML to the hidden field immediately as a safety net,
+      // before Lexical's async update cycle runs.
       const fieldId = documents?.[0]?.id;
       if (fieldId) {
-        window._lexicalRawHtml[fieldId] = sourceHTML;
         const hiddenField = document.getElementById(fieldId);
         if (hiddenField) hiddenField.value = sourceHTML;
       }
 
-      // Import into Lexical for visual display (best-effort — some tags may not render
-      // visually but the raw HTML above is the source of truth for saving/viewing source)
       editor.update(() => {
-        // Clear all existing content
         const root = $getRoot();
         root.clear();
 
-        // Parse the HTML string into a DOM document
         const parser = new DOMParser();
         const dom = parser.parseFromString(sourceHTML, 'text/html');
 
-        // DOMParser moves <style> tags to <head> — move them back to <body>
-        // so $generateNodesFromDOM can attempt to process them
-        Array.from(dom.head.querySelectorAll('style')).forEach(styleEl => {
-          dom.body.insertBefore(styleEl, dom.body.firstChild);
-        });
+        // Capture <style> outerHTML before any DOM manipulation.
+        // DOMParser always places <style> elements in <head>. @lexical/html's
+        // $generateNodesFromDOM ignores them entirely via IGNORE_TAGS = ['STYLE', ...].
+        // We collect them here and create StyleSheetNodes manually below so that:
+        //   1. Styles are applied visually (<style> is in the contentEditable DOM)
+        //   2. Styles are included in $generateHtmlFromNodes exports (via exportDOM)
+        //   3. SyncContentPlugin writes the correct HTML (with styles) to the hidden field
+        const styleOuterHtmls = [...dom.head.querySelectorAll('style')].map(s => s.outerHTML);
 
-        // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
+        // Convert all non-style HTML elements to Lexical nodes
         const nodes = $generateNodesFromDOM(editor, dom);
-
-        // Append each node to the root
-        // Root can only accept block-level nodes (ElementNode, DecoratorNode)
-        // Inline nodes (text, line breaks) must be wrapped in a paragraph first
         nodes.forEach(node => {
           if ($isElementNode(node) || $isDecoratorNode(node)) {
             root.append(node);
@@ -562,13 +547,17 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             root.append(paragraph);
           }
         });
+
+        // Manually create a StyleSheetNode for each <style> tag, preserving all
+        // attributes (media, type, etc.) via the stored outerHTML.
+        styleOuterHtmls.forEach(outerHtml => {
+          root.append($createStyleSheetNode(outerHtml));
+        });
       }, { tag: 'source-import' }); // Tells SyncContentPlugin to skip this update
 
-      // Clear error and hide source view after applying changes
       setSourceError(null);
       setShowSource(false);
     } catch (error) {
-      // Set error message to display in the plugin
       setSourceError(error.message || 'Failed to parse HTML');
     }
   };

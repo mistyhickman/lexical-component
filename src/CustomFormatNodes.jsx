@@ -203,8 +203,11 @@ export function $isDivNode(node) {
 
 // =====================================================================
 // StyleSheetNode — stores a <style> block
-// Invisible in the visual editor, but preserved in HTML export/import
-// so that <style> tags added via source view survive the round-trip
+// Stores the full outerHTML of the <style> element so all attributes
+// (media, type, etc.) are preserved through the round-trip.
+// Inserted into the Lexical node tree manually in applySourceChanges
+// and LoadContentPlugin, bypassing @lexical/html's IGNORE_TAGS constant
+// which prevents <style> elements from being processed automatically.
 // =====================================================================
 
 export class StyleSheetNode extends DecoratorNode {
@@ -213,54 +216,61 @@ export class StyleSheetNode extends DecoratorNode {
   }
 
   static clone(node) {
-    return new StyleSheetNode(node.__styleContent, node.__key);
+    return new StyleSheetNode(node.__styleOuterHtml, node.__key);
   }
 
-  constructor(styleContent, key) {
+  constructor(styleOuterHtml, key) {
     super(key);
-    this.__styleContent = styleContent;
+    this.__styleOuterHtml = styleOuterHtml;
+  }
+
+  // Helper: parse __styleOuterHtml back into a real DOM element
+  _createElement() {
+    const div = document.createElement('div');
+    div.innerHTML = this.__styleOuterHtml;
+    return div.firstChild || document.createElement('style');
   }
 
   static importDOM() {
+    // NOTE: This conversion is never triggered via $generateNodesFromDOM because
+    // @lexical/html hard-codes IGNORE_TAGS = new Set(['STYLE', 'SCRIPT']).
+    // StyleSheetNodes are created manually in applySourceChanges / LoadContentPlugin.
     return {
       style: () => ({
-        conversion: (element) => ({ node: $createStyleSheetNode(element.textContent) }),
+        conversion: (element) => ({ node: $createStyleSheetNode(element.outerHTML) }),
         priority: 0,
       }),
     };
   }
 
   exportDOM() {
-    const element = document.createElement('style');
-    element.textContent = this.__styleContent;
-    return { element };
+    // Reconstruct the original <style> element with all its attributes
+    return { element: this._createElement() };
   }
 
   // Returns an actual <style> element so the CSS rules are applied visually
   // in the editor. Browsers process <style> elements even inside contentEditable.
   createDOM() {
-    const element = document.createElement('style');
-    element.textContent = this.__styleContent;
-    return element;
+    return this._createElement();
   }
 
-  updateDOM(prevNode, dom) {
-    // Update the style content in-place if it changed
-    if (prevNode.__styleContent !== this.__styleContent) {
-      dom.textContent = this.__styleContent;
-    }
-    return false;
+  updateDOM(prevNode) {
+    // If the outerHTML changed, tell Lexical to recreate the DOM element
+    return prevNode.__styleOuterHtml !== this.__styleOuterHtml;
   }
 
   static importJSON(serializedNode) {
-    return $createStyleSheetNode(serializedNode.styleContent);
+    // Support both new format (styleOuterHtml) and old format (styleContent)
+    const outerHtml = serializedNode.styleOuterHtml
+      || `<style>${serializedNode.styleContent || ''}</style>`;
+    return $createStyleSheetNode(outerHtml);
   }
 
   exportJSON() {
     return {
       ...super.exportJSON(),
       type: 'stylesheet',
-      styleContent: this.__styleContent,
+      styleOuterHtml: this.__styleOuterHtml,
       version: 1,
     };
   }
@@ -271,6 +281,6 @@ export class StyleSheetNode extends DecoratorNode {
   }
 }
 
-export function $createStyleSheetNode(styleContent) {
-  return new StyleSheetNode(styleContent);
+export function $createStyleSheetNode(styleOuterHtml) {
+  return new StyleSheetNode(styleOuterHtml);
 }
