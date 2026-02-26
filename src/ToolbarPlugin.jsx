@@ -98,7 +98,7 @@ const LowPriority = 1;
  * @param {string} props.toolList - Space-separated list of tools to show
  * @param {boolean} props.inline - Whether toolbar should stick to top when scrolling
  */
-export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnComplete = false }) {
+export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnComplete = false, documents = [] }) {
   // Get the editor instance
   const [editor] = useLexicalComposerContext();
 
@@ -481,13 +481,21 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    */
   const toggleSource = () => {
     if (!showSource) {
-      // Switching TO source view: Generate HTML from editor content
-      editor.getEditorState().read(() => {
-        // $generateHtmlFromNodes converts Lexical nodes to HTML string
-        const htmlString = cleanExportedHtml($generateHtmlFromNodes(editor, null));
-        setSourceHTML(htmlString); // Save cleaned HTML in state
-        setShowSource(true); // Show the source view
-      });
+      // Switching TO source view: use stored raw HTML if available (set by a previous
+      // source edit), otherwise generate from the current Lexical editor state
+      const fieldId = documents?.[0]?.id;
+      const storedRawHtml = fieldId && window._lexicalRawHtml?.[fieldId];
+
+      if (storedRawHtml) {
+        setSourceHTML(storedRawHtml);
+        setShowSource(true);
+      } else {
+        editor.getEditorState().read(() => {
+          const htmlString = cleanExportedHtml($generateHtmlFromNodes(editor, null));
+          setSourceHTML(htmlString);
+          setShowSource(true);
+        });
+      }
     } else {
       // Switching AWAY from source view: Apply the edited HTML back to the editor
       applySourceChanges();
@@ -511,6 +519,19 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    */
   const applySourceChanges = () => {
     try {
+      // Store the raw source HTML verbatim and write it directly to the hidden field.
+      // This bypasses Lexical's lossy import/export so the exact HTML the user typed
+      // is always preserved — including <style> tags, comments, custom attributes, etc.
+      if (!window._lexicalRawHtml) window._lexicalRawHtml = {};
+      const fieldId = documents?.[0]?.id;
+      if (fieldId) {
+        window._lexicalRawHtml[fieldId] = sourceHTML;
+        const hiddenField = document.getElementById(fieldId);
+        if (hiddenField) hiddenField.value = sourceHTML;
+      }
+
+      // Import into Lexical for visual display (best-effort — some tags may not render
+      // visually but the raw HTML above is the source of truth for saving/viewing source)
       editor.update(() => {
         // Clear all existing content
         const root = $getRoot();
@@ -519,6 +540,12 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         // Parse the HTML string into a DOM document
         const parser = new DOMParser();
         const dom = parser.parseFromString(sourceHTML, 'text/html');
+
+        // DOMParser moves <style> tags to <head> — move them back to <body>
+        // so $generateNodesFromDOM can attempt to process them
+        Array.from(dom.head.querySelectorAll('style')).forEach(styleEl => {
+          dom.body.insertBefore(styleEl, dom.body.firstChild);
+        });
 
         // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
         const nodes = $generateNodesFromDOM(editor, dom);
@@ -535,7 +562,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             root.append(paragraph);
           }
         });
-      });
+      }, { tag: 'source-import' }); // Tells SyncContentPlugin to skip this update
 
       // Clear error and hide source view after applying changes
       setSourceError(null);

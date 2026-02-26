@@ -34,7 +34,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
-import { AddressNode, PreformattedNode, DivNode } from './CustomFormatNodes'; // Custom format nodes
+import { AddressNode, PreformattedNode, DivNode, StyleSheetNode } from './CustomFormatNodes'; // Custom format nodes
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -105,6 +105,12 @@ function LoadContentPlugin({ documents }) {
           // DOMParser is a browser API that converts HTML strings to DOM
           const parser = new DOMParser();
           const dom = parser.parseFromString(htmlContent, 'text/html');
+
+          // DOMParser moves <style> tags to <head> — move them back to <body>
+          // so $generateNodesFromDOM can convert them into StyleSheetNodes
+          Array.from(dom.head.querySelectorAll('style')).forEach(styleEl => {
+            dom.body.insertBefore(styleEl, dom.body.firstChild);
+          });
 
           // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
           const nodes = $generateNodesFromDOM(editor, dom);
@@ -289,7 +295,12 @@ function SyncContentPlugin({ documents, containerId }) {
   useEffect(() => {
     // registerUpdateListener sets up a callback that runs whenever editor content changes
     // It returns a cleanup function to unregister the listener
-    return editor.registerUpdateListener(({ editorState }) => {
+    return editor.registerUpdateListener(({ editorState, tags }) => {
+      // When source HTML is applied, the raw HTML is written directly to the hidden
+      // field by ToolbarPlugin and the update is tagged 'source-import' — skip here
+      // to avoid overwriting it with Lexical's (lossy) export
+      if (tags.has('source-import')) return;
+
       // editorState.read() reads the current state without modifying it
       editorState.read(() => {
         // Convert editor content to HTML string, preserving all formatting
@@ -303,6 +314,11 @@ function SyncContentPlugin({ documents, containerId }) {
         if (documents && documents.length > 0) {
           // forEach loops through each item in the array
           documents.forEach(doc => {
+            // A visual edit invalidates any stored raw source HTML for this field
+            if (window._lexicalRawHtml) {
+              delete window._lexicalRawHtml[doc.id];
+            }
+
             // Find the hidden input field by its ID
             const hiddenField = document.getElementById(doc.id);
             if (hiddenField) {
@@ -372,6 +388,12 @@ export function cleanExportedHtml(html) {
       // Has meaningful styles — keep the span but drop white-space: pre-wrap
       span.setAttribute('style', cleanStyle);
     }
+  });
+
+  // 4. Rescue <style> elements that DOMParser moved to <head> back into <body>
+  //    so they are included in the returned innerHTML
+  Array.from(doc.head.querySelectorAll('style')).forEach(styleEl => {
+    doc.body.insertBefore(styleEl, doc.body.firstChild);
   });
 
   return doc.body.innerHTML;
@@ -504,6 +526,7 @@ export default function LexicalEditor({
       PreformattedNode, // Enables <pre> blocks
       DivNode, // Enables <div> blocks
       HorizontalRuleNode, // Enables <hr> elements
+      StyleSheetNode, // Enables <style> blocks (preserved through source view)
     ],
 
     // Initial editable state
@@ -559,6 +582,7 @@ export default function LexicalEditor({
             toolList={toolList}
             inline={inlineToolbar}
             buildLetterOnComplete={buildLetterOnComplete}
+            documents={documents}
           />
 
           <div className="lexical-editor-inner">
