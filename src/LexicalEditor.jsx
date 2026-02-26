@@ -171,8 +171,17 @@ function ExternalAPIPlugin({ documents }) {
       window.activeLexicalEditorId = fieldId;
     };
 
+    // When the user actually types in the editor, clear any stored raw source HTML
+    // so SyncContentPlugin switches back to using Lexical's export
+    const handleInput = () => {
+      if (window._lexicalRawHtml?.[fieldId]) {
+        delete window._lexicalRawHtml[fieldId];
+      }
+    };
+
     if (rootElement) {
       rootElement.addEventListener('focus', handleFocus);
+      rootElement.addEventListener('input', handleInput);
     }
 
     // Provide a global function to set content into any editor by field ID
@@ -251,6 +260,7 @@ function ExternalAPIPlugin({ documents }) {
     return () => {
       if (rootElement) {
         rootElement.removeEventListener('focus', handleFocus);
+        rootElement.removeEventListener('input', handleInput);
       }
       if (window._lexicalEditors) {
         delete window._lexicalEditors[fieldId];
@@ -296,9 +306,8 @@ function SyncContentPlugin({ documents, containerId }) {
     // registerUpdateListener sets up a callback that runs whenever editor content changes
     // It returns a cleanup function to unregister the listener
     return editor.registerUpdateListener(({ editorState, tags }) => {
-      // When source HTML is applied, the raw HTML is written directly to the hidden
-      // field by ToolbarPlugin and the update is tagged 'source-import' — skip here
-      // to avoid overwriting it with Lexical's (lossy) export
+      // Skip the direct source-import update — raw HTML was already written to the
+      // hidden field by ToolbarPlugin
       if (tags.has('source-import')) return;
 
       // editorState.read() reads the current state without modifying it
@@ -314,15 +323,18 @@ function SyncContentPlugin({ documents, containerId }) {
         if (documents && documents.length > 0) {
           // forEach loops through each item in the array
           documents.forEach(doc => {
-            // A visual edit invalidates any stored raw source HTML for this field
-            if (window._lexicalRawHtml) {
-              delete window._lexicalRawHtml[doc.id];
-            }
-
-            // Find the hidden input field by its ID
             const hiddenField = document.getElementById(doc.id);
-            if (hiddenField) {
-              // Update the field's value with the editor's HTML content
+            if (!hiddenField) return;
+
+            // If raw source HTML is stored for this field, use it instead of Lexical's
+            // export. Lexical fires follow-up updates (normalisation, transforms) after
+            // a source import that don't carry the 'source-import' tag, and those would
+            // strip tags like <style> from the hidden field. The raw HTML is only
+            // cleared when the user actually types in the editor (input event listener
+            // registered in ExternalAPIPlugin).
+            if (window._lexicalRawHtml?.[doc.id]) {
+              hiddenField.value = window._lexicalRawHtml[doc.id];
+            } else {
               hiddenField.value = htmlContent;
             }
           });
