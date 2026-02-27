@@ -92,6 +92,22 @@ import ColorPickerPlugin from './ColorPickerPlugin';
 const LowPriority = 1;
 
 /**
+ * Ensures keyboard focus is always visible on toolbar buttons and dropdowns.
+ * WCAG 2.4.7 (Focus Visible) — without this, host-page CSS resets (e.g.
+ * "* { outline: none }") suppress the browser default outline so users cannot
+ * see where keyboard focus is.  We use :focus-visible so mouse users are not
+ * affected by the outline.
+ */
+const ToolbarWrapper = styled.div`
+  & button:focus-visible,
+  & select:focus-visible {
+    outline: 2px solid #005fcc;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+`;
+
+/**
  * ToolbarPlugin - Main toolbar component
  *
  * @param {Object} props
@@ -141,6 +157,37 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    * Refs are useful for accessing DOM elements directly
    */
   const fontSizeRef = useRef(null);
+  // Ref to the toolbar div — used for arrow-key navigation between items
+  const toolbarRef = useRef(null);
+
+  /**
+   * handleToolbarKeyDown — Arrow-key navigation within the toolbar.
+   *
+   * Per the ARIA Authoring Practices Guide (APG) for toolbar widgets:
+   *  - Left/Right arrows move focus between toolbar items
+   *  - Home/End jump to the first/last item
+   *  - Tab / Shift+Tab leave the toolbar entirely (browser default)
+   *
+   * This satisfies WCAG 2.1.1 (Keyboard) and the ARIA toolbar pattern
+   * without requiring a roving-tabindex implementation.
+   */
+  const handleToolbarKeyDown = (e) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    const toolbar = toolbarRef.current;
+    if (!toolbar) return;
+    const items = [
+      ...toolbar.querySelectorAll('button:not([disabled]), select:not([disabled])'),
+    ];
+    const idx = items.indexOf(document.activeElement);
+    if (idx === -1) return;
+    e.preventDefault();
+    const next =
+      e.key === 'ArrowRight' ? Math.min(idx + 1, items.length - 1) :
+      e.key === 'ArrowLeft'  ? Math.max(idx - 1, 0) :
+      e.key === 'Home'       ? 0 :
+      /* End */                items.length - 1;
+    items[next]?.focus();
+  };
 
   // Parse the toolList string into an array
   // 'bold italic underline' becomes ['bold', 'italic', 'underline']
@@ -754,9 +801,11 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    *    - Groups multiple elements without adding extra DOM nodes
    */
   return (
-    <>
-      {/* Main toolbar container */}
-      <div className="lexical-toolbar" style={toolbarStyle}>
+    <ToolbarWrapper>
+      {/* Main toolbar container
+          role="toolbar" tells screen readers this is a toolbar widget.
+          aria-label provides an accessible name for the toolbar. */}
+      <div className="lexical-toolbar" style={toolbarStyle} role="toolbar" aria-label="Text formatting toolbar" ref={toolbarRef} onKeyDown={handleToolbarKeyDown}>
 
         {/* PARAGRAPH FORMAT DROPDOWN */}
         {tools.includes('formatblock') && (
@@ -790,7 +839,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           </select>
         )}
 
-        {tools.includes('formatblock') && <div style={separatorStyle}></div>}
+        {tools.includes('formatblock') && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
         {/* SPELL CHECK BUTTON */}
         {tools.includes('spellcheck') && (
@@ -835,7 +884,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
         {/* SEPARATOR - Vertical line between button groups
             || is logical OR: shows separator if either button exists */}
-        {(tools.includes('undo') || tools.includes('redo')) && <div style={separatorStyle}></div>}
+        {(tools.includes('undo') || tools.includes('redo')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
         {/* BOLD BUTTON
             Ternary operator in style: condition ? ifTrue : ifFalse
@@ -847,6 +896,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             style={isBold ? activeButtonStyle : buttonStyle}
             title="Bold"
             aria-label="Format Bold"
+            aria-pressed={isBold}
           >
             <b>B</b> {/* The <b> tag makes the B bold */}
           </button>
@@ -858,6 +908,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           style={isItalic ? activeButtonStyle : buttonStyle}
           title="Italic"
           aria-label="Format Italic"
+          aria-pressed={isItalic}
         >
           <i>I</i>
         </button>
@@ -869,6 +920,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           style={isUnderline ? activeButtonStyle : buttonStyle}
           title="Underline"
           aria-label="Format Underline"
+          aria-pressed={isUnderline}
         >
           <u>U</u>
         </button>
@@ -880,6 +932,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           style={isSubscript ? activeButtonStyle : buttonStyle}
           title="Subscript"
           aria-label="Subscript"
+          aria-pressed={isSubscript}
         >
           {/* Subscript: letter A with the 2 positioned BELOW the baseline */}
           <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true">
@@ -895,6 +948,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           style={isSuperscript ? activeButtonStyle : buttonStyle}
           title="Superscript"
           aria-label="Superscript"
+          aria-pressed={isSuperscript}
         >
           {/* Superscript: letter A with the 2 positioned ABOVE the cap height */}
           <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true">
@@ -926,7 +980,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         </button>
       )}
 
-      {(tools.includes('bold') || tools.includes('italic') || tools.includes('underline')) && <div style={separatorStyle}></div>}
+      {(tools.includes('bold') || tools.includes('italic') || tools.includes('underline')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('alignleft') && (
         <button
@@ -993,7 +1047,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         </button>
       )}
 
-      {(tools.includes('alignleft') || tools.includes('aligncenter')) && <div style={separatorStyle}></div>}
+      {(tools.includes('alignleft') || tools.includes('aligncenter')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('bullist') && (
         <button
@@ -1051,7 +1105,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         </button>
       )}
 
-      {(tools.includes('bullist') || tools.includes('numlist')) && <div style={separatorStyle}></div>}
+      {(tools.includes('bullist') || tools.includes('numlist')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('copy') && (
         <button
@@ -1098,7 +1152,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         </button>
       )}
 
-      {(tools.includes('copy') || tools.includes('paste')) && <div style={separatorStyle}></div>}
+      {(tools.includes('copy') || tools.includes('paste')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('fontsize') && (
         <select
@@ -1195,6 +1249,8 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           style={buttonStyle}
           title="Text Color"
           aria-label="Text Color"
+          aria-haspopup="dialog"
+          aria-expanded={Boolean(textColorAnchorEl)}
         >
           <span style={{ borderBottom: '3px solid #ff0000', lineHeight: '1' }}>A</span>
         </button>
@@ -1206,12 +1262,14 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           style={buttonStyle}
           title="Background Color"
           aria-label="Background Color"
+          aria-haspopup="dialog"
+          aria-expanded={Boolean(bgColorAnchorEl)}
         >
           <span style={{ backgroundColor: '#ffff00', padding: '0 3px', lineHeight: '1' }}>A</span>
         </button>
       )}
 
-      {(tools.includes('textcolor') || tools.includes('bgcolor')) && <div style={separatorStyle}></div>}
+      {(tools.includes('textcolor') || tools.includes('bgcolor')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('table') && (
         <button
@@ -1220,6 +1278,8 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           style={buttonStyle}
           title="Insert Table"
           aria-label="Insert Table"
+          aria-haspopup="dialog"
+          aria-expanded={Boolean(tableAnchorEl)}
         >
           ⊞
         </button>
@@ -1247,15 +1307,16 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         </button>
       )}
 
-      {(tools.includes('table') || tools.includes('horizontalrule')) && <div style={separatorStyle}></div>}
+      {(tools.includes('table') || tools.includes('horizontalrule')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('maximize') && (
         <button
             type="button"
           onClick={toggleMaximize}
           style={isMaximized ? activeButtonStyle : buttonStyle}
-          title={isMaximized ? "Restore" : "Maximize"}
-          aria-label="Maximize"
+          title={isMaximized ? "Restore editor size" : "Maximize editor"}
+          aria-label={isMaximized ? "Restore editor size" : "Maximize editor"}
+          aria-pressed={isMaximized}
         >
           {isMaximized ? (
             /* Restore: four corner brackets pointing INWARD toward center */
@@ -1281,8 +1342,9 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             type="button"
           onClick={toggleSource}
           style={showSource ? activeButtonStyle : buttonStyle}
-          title="View Source"
-          aria-label="View Source"
+          title={showSource ? "Close source code view" : "View source code"}
+          aria-label={showSource ? "Close source code view" : "View source code"}
+          aria-pressed={showSource}
         >
           {'<>'}
         </button>
@@ -1327,6 +1389,6 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
     )}
 
     {/* End of toolbar and source view */}
-    </>
+    </ToolbarWrapper>
   );
 }
