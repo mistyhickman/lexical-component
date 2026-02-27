@@ -63,10 +63,15 @@ const ErrorBanner = styled.div`
 
 export default function SourceCodePlugin({ isSourceCodeView, onHtmlChange, initialHtml = ' ', error = null, onExitShortcut = () => {} }) {
   const [htmlContent, setHtmlContent] = useState('');
+  const textareaRef = useRef(null);
 
   useEffect(() => {
     if (isSourceCodeView) {
       setHtmlContent(initialHtml || '');
+      // Move focus to the textarea when source view opens so keyboard users
+      // land directly in the editing area without an extra Tab press.
+      // Use a short delay to let the element fully render first.
+      setTimeout(() => textareaRef.current?.focus(), 50);
     }
   }, [initialHtml, isSourceCodeView]);
 
@@ -86,26 +91,47 @@ export default function SourceCodePlugin({ isSourceCodeView, onHtmlChange, initi
   if (!isSourceCodeView) return null;
 
   return (
-    <SourceCodeContainer>
+    // role="region" + aria-label turns this into a named landmark so screen
+    // reader users can jump directly to the source editor from the landmark menu.
+    <SourceCodeContainer role="region" aria-label="HTML source code editor">
       <SourceCodeHeader>
-        <span>HTML Source Code</span>
-        <WarningText>Invalid HTML may break formatting</WarningText>
+        {/* aria-hidden hides the decorative header text — the region label above
+            already provides the accessible name for this section. */}
+        <span aria-hidden="true">HTML Source Code</span>
+        {/* role="note" marks the warning as supplemental information.
+            The text label makes the warning understandable without colour alone. */}
+        <WarningText role="note" aria-label="Warning: Invalid HTML may break formatting">
+          ⚠ Invalid HTML may break formatting
+        </WarningText>
       </SourceCodeHeader>
 
       <SourceCodeTextArea
+        ref={textareaRef}
         value={htmlContent}
         onChange={handleHtmlChange}
         onKeyDown={handleKeyDown}
         placeholder="Edit the HTML source code here..."
         spellCheck={false}
         aria-label="HTML Source Code Editor"
+        aria-multiline="true"
         aria-invalid={!!error}
-        aria-describedby={error ? 'source-code-error' : undefined }
+        aria-describedby={error ? 'source-code-error' : 'source-code-hint'}
       />
 
+      {/* Keyboard shortcut hint — always present but visually hidden; referenced
+          by aria-describedby when there is no error so users know Ctrl+Enter exits. */}
+      <span
+        id="source-code-hint"
+        style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}
+      >
+        Press Control Enter to apply changes and return to the visual editor.
+      </span>
+
       {error && (
-        <ErrorBanner id="source-code-error">
-          {error} Tip: remove scripts, inline event handlers, disallowed tags, and unsafe URLs.
+        // role="alert" + aria-live="assertive" causes screen readers to
+        // interrupt and announce the error immediately when it appears.
+        <ErrorBanner id="source-code-error" role="alert" aria-live="assertive">
+          <strong>Error:</strong> {error} Tip: remove scripts, inline event handlers, disallowed tags, and unsafe URLs.
         </ErrorBanner>
       )}
     </SourceCodeContainer>

@@ -592,10 +592,17 @@ export default function LexicalEditor({
               contentEditable={
                 <div className="lexical-editor-scroller">
                   <div className="lexical-editor" ref={onRef}>
-                    {/* ContentEditable - The div that users type into */}
+                    {/* ContentEditable - The div that users type into.
+                        aria-label names the field for screen readers.
+                        aria-multiline signals it is a multi-line text editor.
+                        role="textbox" is set implicitly by Lexical but we
+                        reinforce aria-multiline so assistive tech uses the
+                        correct reading mode (not single-line form input mode). */}
                     <ContentEditable
                       className="lexical-content-editable"
                       style={contentEditableStyle}
+                      aria-label="Rich text editor. Use the formatting toolbar above to apply styles."
+                      aria-multiline="true"
                     />
                   </div>
                 </div>
@@ -603,7 +610,10 @@ export default function LexicalEditor({
 
               // placeholder prop: Shown when editor is empty
               placeholder={
-                <div className="lexical-placeholder" style={{
+                // aria-hidden hides the placeholder from screen readers —
+                // the accessible name comes from the ContentEditable aria-label above,
+                // so announcing the placeholder text separately would be redundant/confusing.
+                <div className="lexical-placeholder" aria-hidden="true" style={{
                   position: 'absolute',
                   top: '10px',
                   left: '10px',
