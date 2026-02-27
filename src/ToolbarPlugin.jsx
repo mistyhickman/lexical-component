@@ -445,12 +445,18 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    * This manipulates the DOM directly using standard JavaScript
    */
   const toggleMaximize = () => {
-    // querySelector finds the first element matching the CSS selector
-    const container = document.querySelector('.lexical-editor-container');
+    // Use editor.getRootElement() to get THIS editor's contentEditable element,
+    // then walk up the DOM with closest() to find THIS editor's container.
+    // This is critical when multiple editors with different toolLists are on
+    // the same page — document.querySelector() would always return the first
+    // editor's container, causing the wrong editor to maximize and the wrong
+    // toolbar (wrong access level) to appear in the maximized view.
+    const rootElement = editor.getRootElement();
+    const container = rootElement?.closest('.lexical-editor-container');
 
     if (container) {
       if (!isMaximized) {
-        // Maximize: Make editor fill the entire screen
+        // Maximize: Make this editor fill the entire screen
         container.style.position = 'fixed'; // Fixed position relative to viewport
         container.style.top = '0';
         container.style.left = '0';
@@ -875,7 +881,11 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Subscript"
           aria-label="Subscript"
         >
-          X<sub>2</sub>
+          {/* Subscript: letter A with the 2 positioned BELOW the baseline */}
+          <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true">
+            <text x="1" y="11" fontSize="10" fontWeight="bold" fill="currentColor">A</text>
+            <text x="9" y="14" fontSize="7" fill="currentColor">2</text>
+          </svg>
         </button>
       )}
       {tools.includes('superscript') && (
@@ -886,7 +896,11 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Superscript"
           aria-label="Superscript"
         >
-          X<sup>2</sup>
+          {/* Superscript: letter A with the 2 positioned ABOVE the cap height */}
+          <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true">
+            <text x="1" y="11" fontSize="10" fontWeight="bold" fill="currentColor">A</text>
+            <text x="9" y="5"  fontSize="7" fill="currentColor">2</text>
+          </svg>
         </button>
       )}
       {tools.includes('removeformatting') && (
@@ -922,7 +936,12 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Align Left"
           aria-label="Align Left"
         >
-          ≡
+          {/* Three lines, all anchored to the LEFT edge, varying lengths */}
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+            <rect x="0" y="0" width="15" height="2" rx="1"/>
+            <rect x="0" y="4" width="9"  height="2" rx="1"/>
+            <rect x="0" y="9" width="12" height="2" rx="1"/>
+          </svg>
         </button>
       )}
       {tools.includes('aligncenter') && (
@@ -933,7 +952,12 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Align Center"
           aria-label="Align Center"
         >
-          ≣
+          {/* Three lines, all CENTERED horizontally, varying lengths */}
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+            <rect x="0" y="0" width="15" height="2" rx="1"/>
+            <rect x="3" y="4" width="9"  height="2" rx="1"/>
+            <rect x="2" y="9" width="11" height="2" rx="1"/>
+          </svg>
         </button>
       )}
       {tools.includes('alignright') && (
@@ -944,7 +968,12 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Align Right"
           aria-label="Align Right"
         >
-          ≡̅
+          {/* Three lines, all anchored to the RIGHT edge, varying lengths */}
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+            <rect x="0" y="0" width="15" height="2" rx="1"/>
+            <rect x="6" y="4" width="9"  height="2" rx="1"/>
+            <rect x="3" y="9" width="12" height="2" rx="1"/>
+          </svg>
         </button>
       )}
       {tools.includes('alignjustify') && (
@@ -955,7 +984,12 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Justify"
           aria-label="Justify"
         >
-          ≡
+          {/* Three lines, ALL the same full width (justified/flush both sides) */}
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+            <rect x="0" y="0" width="15" height="2" rx="1"/>
+            <rect x="0" y="4" width="15" height="2" rx="1"/>
+            <rect x="0" y="9" width="15" height="2" rx="1"/>
+          </svg>
         </button>
       )}
 
@@ -1223,7 +1257,23 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title={isMaximized ? "Restore" : "Maximize"}
           aria-label="Maximize"
         >
-          {isMaximized ? '⊡' : '⊞'}
+          {isMaximized ? (
+            /* Restore: four corner brackets pointing INWARD toward center */
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <polyline points="4,1 4,4 1,4"/>
+              <polyline points="9,4 12,4 12,1"/>
+              <polyline points="12,9 9,9 9,12"/>
+              <polyline points="1,9 4,9 4,12"/>
+            </svg>
+          ) : (
+            /* Maximize: four corner brackets pointing OUTWARD from center */
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <polyline points="1,4 1,1 4,1"/>
+              <polyline points="9,1 12,1 12,4"/>
+              <polyline points="12,9 12,12 9,12"/>
+              <polyline points="4,12 1,12 1,9"/>
+            </svg>
+          )}
         </button>
       )}
       {tools.includes('source') && (
