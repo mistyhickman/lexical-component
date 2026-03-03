@@ -10,7 +10,7 @@
  */
 
 // React core imports
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // CSS imports
 import './LexicalTable.css';
@@ -34,7 +34,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
-import { AddressNode, PreformattedNode, DivNode, StyleSheetNode, $createStyleSheetNode } from './CustomFormatNodes'; // Custom format nodes
+import { AddressNode, PreformattedNode, DivNode } from './CustomFormatNodes'; // Custom format nodes
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -43,6 +43,26 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 // The $ prefix is a Lexical convention meaning "this runs inside an editor update"
 import { $getRoot, $createParagraphNode, $isElementNode, $isDecoratorNode, $getSelection, $isRangeSelection, $insertNodes } from 'lexical';
 
+/**
+ * extractAndStripStyles — Pulls every <style>…</style> block out of an HTML
+ * string and returns them separately.
+ *
+ * Why this is needed: Lexical's $generateNodesFromDOM hard-codes
+ * IGNORE_TAGS = ['STYLE', 'SCRIPT'], so <style> elements are silently
+ * dropped during import.  By extracting them BEFORE importing into Lexical
+ * and re-attaching them AFTER generating HTML from Lexical, we keep the
+ * full HTML intact without touching Lexical's internals.
+ *
+ * @param {string} html - Raw HTML that may contain <style> blocks
+ * @returns {{ stylesHtml: string, strippedHtml: string }}
+ */
+export function extractAndStripStyles(html) {
+  const pattern = /<style[^>]*>[\s\S]*?<\/style>/gi;
+  const stylesHtml = (html.match(pattern) || []).join('');
+  const strippedHtml = html.replace(pattern, '');
+  return { stylesHtml, strippedHtml };
+}
+
 // HTML import/export utilities for preserving HTML formatting
 import { $generateNodesFromDOM, $generateHtmlFromNodes } from '@lexical/html';
 
@@ -50,96 +70,67 @@ import { $generateNodesFromDOM, $generateHtmlFromNodes } from '@lexical/html';
 import ToolbarPlugin from './ToolbarPlugin';
 
 /**
- * LoadContentPlugin - A custom plugin to load initial content into the editor
+ * LoadContentPlugin - Loads initial HTML content into the editor.
  *
- * @param {Object} props - Component props
- * @param {Array} props.documents - Array of document objects with initial content
+ * Style tags are extracted BEFORE import (Lexical ignores them via IGNORE_TAGS)
+ * and stored in extraStylesRef so they survive through subsequent edits and
+ * round-trips to the source view.
+ *
+ * @param {Object} props
+ * @param {Array}  props.documents        - Document objects; uses first element
+ * @param {Object} props.extraStylesRef   - Ref that holds preserved <style> HTML
+ * @param {Object} props.styleContainerRef - Ref to the hidden style-injection div
  */
-function LoadContentPlugin({ documents }) {
-  // useLexicalComposerContext returns the editor instance
-  // The [editor] syntax is array destructuring - we only need the first item
+function LoadContentPlugin({ documents, extraStylesRef, styleContainerRef }) {
   const [editor] = useLexicalComposerContext();
 
-  /**
-   * useEffect - A React Hook that runs side effects
-   * Side effects are things like: fetching data, updating the DOM, setting up subscriptions
-   *
-   * useEffect takes two parameters:
-   * 1. A function to run (the effect)
-   * 2. A dependency array - effect runs when these values change
-   */
   useEffect(() => {
-    // Only load content if we have documents
-    if (documents && documents.length > 0) {
-      // Get the first document from the array
-      const firstDoc = documents[0];
+    if (!documents || documents.length === 0) return;
+    const firstDoc = documents[0];
 
-      // Determine the HTML content to load:
-      // 1. First, try reading from the hidden field (most reliable for database content
-      //    since it avoids JSON escaping issues with HTML containing double quotes)
-      // 2. Fall back to the "body" property in the document config if provided
-      let htmlContent = '';
-
-      if (firstDoc.id) {
-        const hiddenField = document.getElementById(firstDoc.id);
-        if (hiddenField && hiddenField.value) {
-          htmlContent = hiddenField.value;
-        }
-      }
-
-      // Fall back to body property if hidden field was empty
-      if (!htmlContent && firstDoc.body) {
-        htmlContent = firstDoc.body;
-      }
-
-      if (htmlContent) {
-        // editor.update() - The ONLY way to modify editor content
-        // It takes a function that runs inside Lexical's update cycle
-        editor.update(() => {
-          // $getRoot() gets the root node of the editor (top of the content tree)
-          const root = $getRoot();
-          // Clear any existing content
-          root.clear();
-
-          // Parse HTML content into a DOM structure
-          // DOMParser is a browser API that converts HTML strings to DOM
-          const parser = new DOMParser();
-          const dom = parser.parseFromString(htmlContent, 'text/html');
-
-          // Capture <style> outerHTML before any DOM manipulation.
-          // DOMParser always places <style> in <head>, and @lexical/html's
-          // $generateNodesFromDOM ignores them via IGNORE_TAGS = ['STYLE', 'SCRIPT'].
-          // We create StyleSheetNodes manually to preserve them in the node tree.
-          const styleOuterHtmls = [...dom.head.querySelectorAll('style')].map(s => s.outerHTML);
-
-          // Convert the parsed HTML DOM into Lexical nodes, preserving all formatting
-          const nodes = $generateNodesFromDOM(editor, dom);
-
-          // Append each node to the root
-          // Root can only accept block-level nodes (ElementNode, DecoratorNode)
-          // Inline nodes (text, line breaks) must be wrapped in a paragraph first
-          nodes.forEach(node => {
-            if ($isElementNode(node) || $isDecoratorNode(node)) {
-              root.append(node);
-            } else {
-              // Wrap inline nodes in a paragraph
-              const paragraph = $createParagraphNode();
-              paragraph.append(node);
-              root.append(paragraph);
-            }
-          });
-
-          // Manually create StyleSheetNodes for each <style> tag so they survive
-          // in Lexical's node tree and are included in $generateHtmlFromNodes exports.
-          styleOuterHtmls.forEach(outerHtml => {
-            root.append($createStyleSheetNode(outerHtml));
-          });
-        });
-      }
+    // Prefer the hidden field value (avoids JSON-escaping issues with HTML that
+    // contains double quotes), fall back to the body property.
+    let htmlContent = '';
+    if (firstDoc.id) {
+      const hiddenField = document.getElementById(firstDoc.id);
+      if (hiddenField?.value) htmlContent = hiddenField.value;
     }
-  }, [editor, documents]); // Run this effect when editor or documents change
+    if (!htmlContent && firstDoc.body) htmlContent = firstDoc.body;
+    if (!htmlContent) return;
 
-  // Plugins don't render anything visible - they just add functionality
+    // Pull <style> blocks out of the HTML so Lexical never sees them.
+    // Store them in the shared ref; SyncContentPlugin will re-attach them
+    // to the hidden field after every Lexical update.
+    const { stylesHtml, strippedHtml } = extractAndStripStyles(htmlContent);
+    extraStylesRef.current = stylesHtml;
+
+    // Inject the styles into the hidden div so CSS rules apply visually.
+    // <style> elements apply globally even inside a display:none container.
+    if (styleContainerRef?.current) {
+      styleContainerRef.current.innerHTML = stylesHtml;
+    }
+
+    // Load the style-free HTML into Lexical
+    editor.update(() => {
+      const root = $getRoot();
+      root.clear();
+
+      const parser = new DOMParser();
+      const dom = parser.parseFromString(strippedHtml, 'text/html');
+      const nodes = $generateNodesFromDOM(editor, dom);
+
+      nodes.forEach(node => {
+        if ($isElementNode(node) || $isDecoratorNode(node)) {
+          root.append(node);
+        } else {
+          const paragraph = $createParagraphNode();
+          paragraph.append(node);
+          root.append(paragraph);
+        }
+      });
+    });
+  }, [editor, documents]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return null;
 }
 
@@ -286,51 +277,41 @@ function EditablePlugin({ editable }) {
 }
 
 /**
- * SyncContentPlugin - Syncs editor content to hidden form fields
+ * SyncContentPlugin - Syncs editor content to hidden form fields on every update.
  *
- * This is useful when the editor is part of a form - it keeps hidden <input>
- * fields updated with the editor's content so the form can submit the data
+ * The output is always:  cleanExportedHtml(Lexical HTML)  +  extraStylesRef.current
+ * This ensures style tags extracted at load-time (or applied via source view) are
+ * always re-attached, giving one self-contained HTML value in the hidden field.
  *
  * @param {Object} props
- * @param {Array} props.documents - Array of documents with IDs to sync to
- * @param {string} props.containerId - ID of the editor container
+ * @param {Array}  props.documents      - Documents with hidden-field IDs to update
+ * @param {Object} props.extraStylesRef - Shared ref holding preserved <style> HTML
+ * @param {string} props.containerId    - ID of the editor container (for keying)
  */
-function SyncContentPlugin({ documents, containerId }) {
+function SyncContentPlugin({ documents, extraStylesRef, containerId }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    // registerUpdateListener sets up a callback that runs whenever editor content changes
-    // It returns a cleanup function to unregister the listener
     return editor.registerUpdateListener(({ editorState, tags }) => {
-      // Skip the direct source-import update — the hidden field was already written
-      // by applySourceChanges before the editor.update() call
+      // applySourceChanges writes the hidden field directly before triggering
+      // editor.update(), so skip the redundant sync for that tagged update.
       if (tags.has('source-import')) return;
 
-      // editorState.read() reads the current state without modifying it
       editorState.read(() => {
-        // Convert editor content to HTML string, preserving all formatting.
-        // StyleSheetNodes in the tree are exported via exportDOM() so <style> tags
-        // are included automatically — no special handling needed.
-        const rawHtml = $generateHtmlFromNodes(editor);
+        // Lexical's HTML for the editable content (no style tags)
+        const lexicalHtml = cleanExportedHtml($generateHtmlFromNodes(editor));
 
-        // Clean up Lexical-specific artifacts from the HTML output
-        // so the saved HTML is clean and portable
-        const htmlContent = cleanExportedHtml(rawHtml);
+        // Re-attach preserved style tags so the hidden field always contains
+        // the complete document HTML, including any <style> blocks the user added.
+        const combined = lexicalHtml + (extraStylesRef.current || '');
 
-        // Update hidden fields for each document
-        if (documents && documents.length > 0) {
-          documents.forEach(doc => {
-            const hiddenField = document.getElementById(doc.id);
-            if (!hiddenField) return;
-            hiddenField.value = htmlContent;
-          });
-        }
+        documents?.forEach(doc => {
+          const hiddenField = document.getElementById(doc.id);
+          if (hiddenField) hiddenField.value = combined;
+        });
       });
     });
-    // The cleanup function returned by registerUpdateListener will run when:
-    // - The component unmounts (is removed)
-    // - The dependencies change (before re-running the effect)
-  }, [editor, documents, containerId]);
+  }, [editor, documents, containerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 }
@@ -444,6 +425,16 @@ export default function LexicalEditor({
    */
   const [floatingAnchorElem, setFloatingAnchorElem] = useState(null);
 
+  // Holds the raw <style>…</style> HTML that Lexical cannot store in its node tree.
+  // Written by LoadContentPlugin / applySourceChanges; read by SyncContentPlugin
+  // and ToolbarPlugin when opening source view.
+  const extraStylesRef = useRef('');
+
+  // DOM ref to the hidden div that holds injected <style> elements.
+  // <style> tags apply their CSS globally even inside a display:none container,
+  // so the visual editor reflects any custom CSS the user typed in source view.
+  const styleContainerRef = useRef(null);
+
   /**
    * onRef - A callback function passed to a ref attribute
    * Refs in React give you direct access to DOM elements
@@ -524,7 +515,9 @@ export default function LexicalEditor({
       PreformattedNode, // Enables <pre> blocks
       DivNode, // Enables <div> blocks
       HorizontalRuleNode, // Enables <hr> elements
-      StyleSheetNode, // Enables <style> blocks (preserved through source view)
+      // Note: <style> tags are handled outside Lexical's node system via
+      // extraStylesRef + extractAndStripStyles — see LoadContentPlugin and
+      // SyncContentPlugin for details.
     ],
 
     // Initial editable state
@@ -568,6 +561,15 @@ export default function LexicalEditor({
     // Outer container with the unique ID
     <div id={appContainerId} className="lexical-editor-container">
 
+      {/* Hidden container for injected <style> elements.
+          CSS from <style> tags applies globally even inside display:none,
+          so custom styles entered via source view are reflected visually. */}
+      <div
+        ref={styleContainerRef}
+        aria-hidden="true"
+        style={{ display: 'none' }}
+      />
+
       {/* LexicalComposer - The root Lexical component
           It creates a "context" that all child plugins can access
           Think of it like a container that holds the editor instance */}
@@ -581,6 +583,8 @@ export default function LexicalEditor({
             inline={inlineToolbar}
             buildLetterOnComplete={buildLetterOnComplete}
             documents={documents}
+            extraStylesRef={extraStylesRef}
+            styleContainerRef={styleContainerRef}
           />
 
           <div className="lexical-editor-inner">
@@ -639,9 +643,17 @@ export default function LexicalEditor({
             <HorizontalRulePlugin /> {/* Horizontal rule (<hr>) support */}
 
             {/* Our custom plugins */}
-            <LoadContentPlugin documents={documents} />
+            <LoadContentPlugin
+              documents={documents}
+              extraStylesRef={extraStylesRef}
+              styleContainerRef={styleContainerRef}
+            />
             <EditablePlugin editable={editable} />
-            <SyncContentPlugin documents={documents} containerId={appContainerId} />
+            <SyncContentPlugin
+              documents={documents}
+              extraStylesRef={extraStylesRef}
+              containerId={appContainerId}
+            />
             <ExternalAPIPlugin documents={documents} />
 
           </div>
