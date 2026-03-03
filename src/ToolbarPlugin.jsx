@@ -61,8 +61,8 @@ import {
   HeadingTagType
 } from '@lexical/rich-text';
 
-// Custom format nodes (address, pre, div, stylesheet)
-import { $createAddressNode, $createPreformattedNode, $createDivNode, $createStyleSheetNode } from './CustomFormatNodes';
+// Custom format nodes (address, pre, div)
+import { $createAddressNode, $createPreformattedNode, $createDivNode } from './CustomFormatNodes';
 
 // More selection utilities
 import { $setBlocksType, $patchStyleText } from '@lexical/selection';
@@ -76,8 +76,8 @@ import TableCreatorPlugin from './TableCreatorPlugin';
 // Source code view plugin
 import SourceCodePlugin from './SourceCodePlugin';
 
-// HTML cleanup utility
-import { cleanExportedHtml } from './LexicalEditor';
+// HTML cleanup and style-extraction utilities
+import { cleanExportedHtml, extractAndStripStyles } from './LexicalEditor';
 
 // Color picker
 import ColorPickerPlugin from './ColorPickerPlugin';
@@ -114,7 +114,7 @@ const ToolbarWrapper = styled.div`
  * @param {string} props.toolList - Space-separated list of tools to show
  * @param {boolean} props.inline - Whether toolbar should stick to top when scrolling
  */
-export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnComplete = false, documents = [] }) {
+export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnComplete = false, documents = [], extraStylesRef, styleContainerRef }) {
   // Get the editor instance
   const [editor] = useLexicalComposerContext();
 
@@ -529,21 +529,32 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
   // ===== SOURCE CODE VIEW =====
   /**
-   * toggleSource - Shows/hides the HTML source code view
-   * This lets users see and edit the raw HTML of their content
+   * toggleSource - Shows/hides the HTML source code view.
+   *
+   * Opening: read the hidden field value — it always holds the complete HTML
+   * (Lexical content + preserved style tags written by SyncContentPlugin), so
+   * the source view shows exactly what will be saved, including any <style> blocks.
+   *
+   * Closing: delegate to applySourceChanges().
    */
   const toggleSource = () => {
     if (!showSource) {
-      // Switching TO source view: generate from current Lexical editor state.
-      // StyleSheetNodes in the tree are exported via exportDOM() so <style> tags
-      // appear correctly in the source even after the user has typed in the editor.
-      editor.getEditorState().read(() => {
-        const htmlString = cleanExportedHtml($generateHtmlFromNodes(editor, null));
-        setSourceHTML(htmlString);
-        setShowSource(true);
-      });
+      // Prefer the hidden field, which SyncContentPlugin keeps up to date with
+      // the full HTML (Lexical output + extraStylesRef).  Fall back to generating
+      // from Lexical state + current extraStylesRef when no field exists.
+      const fieldId = documents?.[0]?.id;
+      const hiddenField = fieldId ? document.getElementById(fieldId) : null;
+
+      if (hiddenField?.value) {
+        setSourceHTML(hiddenField.value);
+      } else {
+        editor.getEditorState().read(() => {
+          const lexicalHtml = cleanExportedHtml($generateHtmlFromNodes(editor, null));
+          setSourceHTML(lexicalHtml + (extraStylesRef?.current || ''));
+        });
+      }
+      setShowSource(true);
     } else {
-      // Switching AWAY from source view: Apply the edited HTML back to the editor
       applySourceChanges();
     }
   };
@@ -559,38 +570,49 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
   };
 
   /**
-   * applySourceChanges - Applies edited HTML back to the editor
-   * Currently simplified - parses HTML and inserts as plain text
-   * A more advanced version would preserve HTML structure
+   * applySourceChanges - Applies the source-view HTML back to the editor.
+   *
+   * 1. Extract <style> blocks from the source HTML → store in extraStylesRef
+   *    and inject into the style container div for visual rendering.
+   * 2. Write the complete source HTML to the hidden field immediately (safety net).
+   * 3. Load the style-free HTML into Lexical.
+   * 4. SyncContentPlugin will fire after the update and write
+   *    (Lexical HTML + extraStylesRef) to the hidden field automatically,
+   *    so the field stays correct on every subsequent keystroke too.
    */
   const applySourceChanges = () => {
     try {
-      // Write the raw HTML to the hidden field immediately as a safety net,
-      // before Lexical's async update cycle runs.
+      // Separate <style> blocks from the rest of the HTML
+      const { stylesHtml, strippedHtml } = extractAndStripStyles(sourceHTML);
+
+      // Persist styles in the shared ref so SyncContentPlugin can re-attach them
+      if (extraStylesRef) extraStylesRef.current = stylesHtml;
+
+      // Inject styles into the hidden container so CSS rules apply visually
+      if (styleContainerRef?.current) {
+        styleContainerRef.current.innerHTML = stylesHtml;
+      }
+
+      // Write the full source HTML to the hidden field immediately as a safety
+      // net — SyncContentPlugin will update it again after editor.update() fires,
+      // but this guarantees nothing is lost if the update is async.
       const fieldId = documents?.[0]?.id;
       if (fieldId) {
         const hiddenField = document.getElementById(fieldId);
         if (hiddenField) hiddenField.value = sourceHTML;
       }
 
+      // Load the style-free HTML into Lexical.
+      // Tagged 'source-import' so SyncContentPlugin skips this one update
+      // (the hidden field was already written above).
       editor.update(() => {
         const root = $getRoot();
         root.clear();
 
         const parser = new DOMParser();
-        const dom = parser.parseFromString(sourceHTML, 'text/html');
-
-        // Capture <style> outerHTML before any DOM manipulation.
-        // DOMParser always places <style> elements in <head>. @lexical/html's
-        // $generateNodesFromDOM ignores them entirely via IGNORE_TAGS = ['STYLE', ...].
-        // We collect them here and create StyleSheetNodes manually below so that:
-        //   1. Styles are applied visually (<style> is in the contentEditable DOM)
-        //   2. Styles are included in $generateHtmlFromNodes exports (via exportDOM)
-        //   3. SyncContentPlugin writes the correct HTML (with styles) to the hidden field
-        const styleOuterHtmls = [...dom.head.querySelectorAll('style')].map(s => s.outerHTML);
-
-        // Convert all non-style HTML elements to Lexical nodes
+        const dom = parser.parseFromString(strippedHtml, 'text/html');
         const nodes = $generateNodesFromDOM(editor, dom);
+
         nodes.forEach(node => {
           if ($isElementNode(node) || $isDecoratorNode(node)) {
             root.append(node);
@@ -600,13 +622,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             root.append(paragraph);
           }
         });
-
-        // Manually create a StyleSheetNode for each <style> tag, preserving all
-        // attributes (media, type, etc.) via the stored outerHTML.
-        styleOuterHtmls.forEach(outerHtml => {
-          root.append($createStyleSheetNode(outerHtml));
-        });
-      }, { tag: 'source-import' }); // Tells SyncContentPlugin to skip this update
+      }, { tag: 'source-import' });
 
       setSourceError(null);
       setShowSource(false);
