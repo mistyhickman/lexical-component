@@ -298,8 +298,12 @@ function SyncContentPlugin({ documents, extraStylesRef, containerId }) {
       if (tags.has('source-import')) return;
 
       editorState.read(() => {
-        // Lexical's HTML for the editable content (no style tags)
-        const lexicalHtml = cleanExportedHtml($generateHtmlFromNodes(editor));
+        // Lexical's HTML for the editable content.
+        // Strip any stray <style> tags from lexicalHtml — styles are managed
+        // exclusively via extraStylesRef so they never appear twice.
+        const { strippedHtml: lexicalHtml } = extractAndStripStyles(
+          cleanExportedHtml($generateHtmlFromNodes(editor))
+        );
 
         // Re-attach preserved style tags so the hidden field always contains
         // the complete document HTML, including any <style> blocks the user added.
@@ -368,12 +372,6 @@ export function cleanExportedHtml(html) {
       // Has meaningful styles — keep the span but drop white-space: pre-wrap
       span.setAttribute('style', cleanStyle);
     }
-  });
-
-  // 4. Rescue <style> elements that DOMParser moved to <head> back into <body>
-  //    so they are included in the returned innerHTML
-  Array.from(doc.head.querySelectorAll('style')).forEach(styleEl => {
-    doc.body.insertBefore(styleEl, doc.body.firstChild);
   });
 
   return doc.body.innerHTML;

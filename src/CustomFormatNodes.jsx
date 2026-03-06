@@ -287,10 +287,16 @@ export function $createStyleSheetNode(styleOuterHtml) {
 }
 
 // =====================================================================
-// RawHtmlNode — preserves arbitrary HTML blocks (tables, etc.) verbatim
-// Uses priority 4 in importDOM so it overrides TableNode (priority 0).
+// RawHtmlNode — preserves arbitrary HTML blocks verbatim
+//
+// Handles:
+//   - <table>  (priority 4, overrides TableNode at priority 0)
+//   - <div> with any attributes (priority 4, overrides DivNode at priority 0)
+//     Plain <div> elements (no attributes) fall through to DivNode.
+//
 // The original outerHTML is stored and restored on export, preventing
-// Lexical from restructuring or adding colgroup/styling to tables.
+// Lexical from restructuring, adding colgroup/styling, or stripping
+// attributes from content loaded from the database.
 // =====================================================================
 
 export class RawHtmlNode extends DecoratorNode {
@@ -311,6 +317,19 @@ export class RawHtmlNode extends DecoratorNode {
     return {
       table: () => ({
         conversion: (element) => ({ node: new RawHtmlNode(element.outerHTML) }),
+        priority: 4,
+      }),
+      // Capture <div> elements that have attributes (class, id, style, data-*, etc.)
+      // so their markup is preserved verbatim, just like tables.
+      // Plain <div> elements (no attributes) return null, which falls through
+      // to DivNode at priority 0 so user-created divs remain editable.
+      div: () => ({
+        conversion: (element) => {
+          if (element.hasAttributes()) {
+            return { node: new RawHtmlNode(element.outerHTML) };
+          }
+          return null;
+        },
         priority: 4,
       }),
     };
