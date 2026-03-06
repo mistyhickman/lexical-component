@@ -549,8 +549,10 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         setSourceHTML(hiddenField.value);
       } else {
         editor.getEditorState().read(() => {
-          const lexicalHtml = cleanExportedHtml($generateHtmlFromNodes(editor, null));
-          setSourceHTML(lexicalHtml + (extraStylesRef?.current || ''));
+          const { strippedHtml: lexicalHtml } = extractAndStripStyles(
+            cleanExportedHtml($generateHtmlFromNodes(editor, null))
+          );
+          setSourceHTML((extraStylesRef?.current || '') + lexicalHtml);
         });
       }
       setShowSource(true);
