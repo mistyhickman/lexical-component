@@ -34,7 +34,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
-import { AddressNode, PreformattedNode, DivNode } from './CustomFormatNodes'; // Custom format nodes
+import { AddressNode, PreformattedNode, DivNode, RawHtmlNode } from './CustomFormatNodes'; // Custom format nodes
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -303,7 +303,8 @@ function SyncContentPlugin({ documents, extraStylesRef, containerId }) {
 
         // Re-attach preserved style tags so the hidden field always contains
         // the complete document HTML, including any <style> blocks the user added.
-        const combined = lexicalHtml + (extraStylesRef.current || '');
+        // Prepend styles so they appear at the top (matching original DB position).
+        const combined = (extraStylesRef.current || '') + lexicalHtml;
 
         documents?.forEach(doc => {
           const hiddenField = document.getElementById(doc.id);
@@ -515,6 +516,7 @@ export default function LexicalEditor({
       PreformattedNode, // Enables <pre> blocks
       DivNode, // Enables <div> blocks
       HorizontalRuleNode, // Enables <hr> elements
+      RawHtmlNode, // Preserves <table> and other blocks verbatim (priority 4 importDOM)
       // Note: <style> tags are handled outside Lexical's node system via
       // extraStylesRef + extractAndStripStyles — see LoadContentPlugin and
       // SyncContentPlugin for details.
