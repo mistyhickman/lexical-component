@@ -10,6 +10,7 @@
  *   getType, clone, createDOM, updateDOM, importDOM, exportDOM, importJSON, exportJSON
  */
 
+import React from 'react';
 import { ElementNode, DecoratorNode, $applyNodeReplacement } from 'lexical';
 
 // =====================================================================
@@ -283,4 +284,78 @@ export class StyleSheetNode extends DecoratorNode {
 
 export function $createStyleSheetNode(styleOuterHtml) {
   return new StyleSheetNode(styleOuterHtml);
+}
+
+// =====================================================================
+// RawHtmlNode — preserves arbitrary HTML blocks (tables, etc.) verbatim
+// Uses priority 4 in importDOM so it overrides TableNode (priority 0).
+// The original outerHTML is stored and restored on export, preventing
+// Lexical from restructuring or adding colgroup/styling to tables.
+// =====================================================================
+
+export class RawHtmlNode extends DecoratorNode {
+  static getType() {
+    return 'raw-html';
+  }
+
+  static clone(node) {
+    return new RawHtmlNode(node.__rawHtml, node.__key);
+  }
+
+  constructor(rawHtml, key) {
+    super(key);
+    this.__rawHtml = rawHtml;
+  }
+
+  static importDOM() {
+    return {
+      table: () => ({
+        conversion: (element) => ({ node: new RawHtmlNode(element.outerHTML) }),
+        priority: 4,
+      }),
+    };
+  }
+
+  exportDOM() {
+    const container = document.createElement('div');
+    container.innerHTML = this.__rawHtml;
+    return { element: container.firstElementChild || container };
+  }
+
+  createDOM() {
+    const el = document.createElement('div');
+    el.contentEditable = 'false';
+    return el;
+  }
+
+  updateDOM() {
+    return false;
+  }
+
+  static importJSON(serializedNode) {
+    return new RawHtmlNode(serializedNode.rawHtml);
+  }
+
+  exportJSON() {
+    return {
+      ...super.exportJSON(),
+      type: 'raw-html',
+      rawHtml: this.__rawHtml,
+      version: 1,
+    };
+  }
+
+  decorate() {
+    return React.createElement('div', {
+      dangerouslySetInnerHTML: { __html: this.__rawHtml },
+    });
+  }
+}
+
+export function $createRawHtmlNode(rawHtml) {
+  return new RawHtmlNode(rawHtml);
+}
+
+export function $isRawHtmlNode(node) {
+  return node instanceof RawHtmlNode;
 }
