@@ -79,6 +79,9 @@ import SourceCodePlugin from './SourceCodePlugin';
 // HTML cleanup and style-extraction utilities
 import { cleanExportedHtml, extractAndStripStyles } from './LexicalEditor';
 
+// Footnote dialog
+import { FootnoteDialog } from './FootnotesPlugin';
+
 // Color picker
 import ColorPickerPlugin from './ColorPickerPlugin';
 
@@ -114,7 +117,7 @@ const ToolbarWrapper = styled.div`
  * @param {string} props.toolList - Space-separated list of tools to show
  * @param {boolean} props.inline - Whether toolbar should stick to top when scrolling
  */
-export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnComplete = false, documents = [], extraStylesRef, styleContainerRef }) {
+export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnComplete = false, documents = [], extraStylesRef, styleContainerRef, footnotesConfig = null }) {
   // Get the editor instance
   const [editor] = useLexicalComposerContext();
 
@@ -146,6 +149,9 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
   // Table creator popover state
   const [tableAnchorEl, setTableAnchorEl] = useState(null);
+
+  // Footnote dialog state
+  const [showFootnoteDialog, setShowFootnoteDialog] = useState(false);
 
   // Color picker popover states
   const [textColorAnchorEl, setTextColorAnchorEl] = useState(null);
@@ -460,15 +466,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
   // Footnote
   const insertFootnote = () => {
-    const footnoteText = prompt('Enter footnote text:');
-    if (footnoteText) {
-      editor.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          selection.insertText(`[${footnoteText}]`);
-        }
-      });
-    }
+    setShowFootnoteDialog(true);
   };
 
   // Horizontal rule — insert directly to avoid extra empty paragraphs
@@ -1403,6 +1401,15 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         anchorEl={bgColorAnchorEl}
         onClose={handleBgColorClose}
         onSelectColor={applyBgColor}
+      />
+    )}
+
+    {/* Footnote Dialog */}
+    {tools.includes('footnote') && (
+      <FootnoteDialog
+        isOpen={showFootnoteDialog}
+        onClose={() => setShowFootnoteDialog(false)}
+        footnotesConfig={footnotesConfig || {}}
       />
     )}
 

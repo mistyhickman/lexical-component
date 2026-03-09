@@ -35,6 +35,7 @@ import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
 import { AddressNode, PreformattedNode, DivNode, RawHtmlNode } from './CustomFormatNodes'; // Custom format nodes
+import { FootnoteMarkerNode, FootnoteSectionNode, FootnotesPlugin } from './FootnotesPlugin'; // Footnotes support
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -407,6 +408,7 @@ export default function LexicalEditor({
   toolList = 'bold italic underline strikethrough code link unlink ul ol quote undo redo',
   editable = true,
   buildLetterOnComplete = false,
+  footnotesConfig = null,
 }) {
   /**
    * useState - A React Hook for managing component state
@@ -515,6 +517,8 @@ export default function LexicalEditor({
       DivNode, // Enables <div> blocks
       HorizontalRuleNode, // Enables <hr> elements
       RawHtmlNode, // Preserves <table> and other blocks verbatim (priority 4 importDOM)
+      FootnoteMarkerNode, // Inline <sup data-footnote-id> reference markers
+      FootnoteSectionNode, // Block <section class="footnotes"> list at end of doc
       // Note: <style> tags are handled outside Lexical's node system via
       // extraStylesRef + extractAndStripStyles — see LoadContentPlugin and
       // SyncContentPlugin for details.
@@ -585,6 +589,7 @@ export default function LexicalEditor({
             documents={documents}
             extraStylesRef={extraStylesRef}
             styleContainerRef={styleContainerRef}
+            footnotesConfig={footnotesConfig}
           />
 
           <div className="lexical-editor-inner">
@@ -655,6 +660,7 @@ export default function LexicalEditor({
               containerId={appContainerId}
             />
             <ExternalAPIPlugin documents={documents} />
+            <FootnotesPlugin footnotesConfig={footnotesConfig || {}} />
 
           </div>
         </div>
