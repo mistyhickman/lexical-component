@@ -796,11 +796,33 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
   // Clipboard commands
   const handleCopy = () => {
-    document.execCommand('copy');
+    editor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const text = selection.getTextContent();
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+    });
   };
 
   const handleCut = () => {
-    document.execCommand('cut');
+    let textToCut = '';
+    editor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        textToCut = selection.getTextContent();
+      }
+    });
+    if (textToCut) {
+      navigator.clipboard.writeText(textToCut).then(() => {
+        editor.update(() => {
+          const sel = $getSelection();
+          if ($isRangeSelection(sel)) {
+            sel.removeText();
+          }
+        });
+      }).catch(() => {});
+    }
   };
 
   const handlePaste = () => {
