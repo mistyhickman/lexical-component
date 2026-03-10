@@ -438,6 +438,20 @@ const CLIPBOARD_OPTIONS = [
       </svg>
     ),
   },
+  // 'pasteword' is a legacy tool key; treat it as a plain paste so any
+  // toolList that includes pasteword (but not paste) still shows the option.
+  {
+    key: 'pasteword',
+    label: 'Paste',
+    icon: (
+      <svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+        <rect x="0.5" y="2"   width="11" height="12" rx="1"/>
+        <rect x="3.5" y="0.5" width="5"  height="3"  rx="0.5"/>
+        <line x1="2.5" y1="6.5" x2="9.5" y2="6.5"/>
+        <line x1="2.5" y1="9"   x2="7.5" y2="9"/>
+      </svg>
+    ),
+  },
 ];
 
 /**
@@ -449,9 +463,10 @@ function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
   const containerRef = useRef(null);
 
   const handlers = {
-    cut:   onCut,
-    copy:  onCopy,
-    paste: onPaste,
+    cut:       onCut,
+    copy:      onCopy,
+    paste:     onPaste,
+    pasteword: onPaste, // legacy alias
   };
 
   const visibleOptions = CLIPBOARD_OPTIONS.filter(opt => tools.includes(opt.key));
@@ -471,6 +486,7 @@ function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
     <div ref={containerRef} style={{ position: 'relative' }}>
       <button
         type="button"
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
         style={{ ...buttonStyle, gap: '4px' }}
         title="Clipboard"
@@ -509,6 +525,7 @@ function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
               key={opt.key}
               type="button"
               role="option"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => { handlers[opt.key](); setOpen(false); }}
               style={{
                 display: 'flex',
@@ -787,7 +804,18 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
   };
 
   const handlePaste = () => {
-    document.execCommand('paste');
+    // document.execCommand('paste') is blocked by all modern browsers.
+    // Use the Clipboard API instead and insert as text at the current selection.
+    navigator.clipboard.readText().then(text => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          selection.insertText(text);
+        }
+      });
+    }).catch(() => {
+      // Clipboard access denied — user can use Ctrl+V / Cmd+V instead.
+    });
   };
 
   const handlePasteWord = () => {
@@ -1470,7 +1498,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
       {(tools.includes('bullist') || tools.includes('numlist') || tools.includes('checklist')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
-      {(tools.includes('cut') || tools.includes('copy') || tools.includes('paste')) && (
+      {(tools.includes('cut') || tools.includes('copy') || tools.includes('paste') || tools.includes('pasteword')) && (
         <ClipboardDropdown
           tools={tools}
           onCut={handleCut}
@@ -1480,7 +1508,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         />
       )}
 
-      {(tools.includes('cut') || tools.includes('copy') || tools.includes('paste')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
+      {(tools.includes('cut') || tools.includes('copy') || tools.includes('paste') || tools.includes('pasteword')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('fontsize') && (
         <select
