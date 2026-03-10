@@ -268,7 +268,7 @@ export class FootnoteSectionNode extends DecoratorNode {
     const {
       prefix = '',
       disableHeader = false,
-      title = 'Footnotes',
+      title = 'Endnotes',
       headerEls = ['<h2>', '</h2>'],
     } = this.__config || {};
 
@@ -371,7 +371,7 @@ export class FootnoteSectionNode extends DecoratorNode {
 function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
   const {
     disableHeader = false,
-    title = 'Footnotes',
+    title = 'Endnotes',
     headerEls = ['<h2>', '</h2>'],
   } = config;
 
@@ -381,7 +381,7 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
 
   const handleEdit = (idx) => {
     const fn = footnotes[idx];
-    const newText = window.prompt('Edit footnote text (HTML allowed):', fn.text);
+    const newText = window.prompt('Edit endnote text (HTML allowed):', fn.text);
     if (newText === null) return; // user cancelled
 
     editor.update(() => {
@@ -405,32 +405,31 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
       )}
       <ol style={{ paddingLeft: '20px', margin: '4px 0' }}>
         {(footnotes || []).map((fn, idx) => (
-          <li
-            key={fn.id}
-            style={{ marginBottom: '6px', display: 'flex', alignItems: 'baseline', gap: '8px' }}
-          >
-            <span style={{ flex: 1 }}>
-              <cite
-                style={{ fontStyle: 'normal' }}
-                dangerouslySetInnerHTML={{ __html: fn.text || '' }}
-              />
-            </span>
-            <button
-              type="button"
-              onClick={() => handleEdit(idx)}
-              style={{
-                fontSize: '11px',
-                padding: '1px 6px',
-                border: '1px solid #aaa',
-                borderRadius: '3px',
-                background: 'white',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-              title={`Edit footnote ${idx + 1}`}
-            >
-              Edit
-            </button>
+          <li key={fn.id} style={{ marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+              <span style={{ flex: 1 }}>
+                <cite
+                  style={{ fontStyle: 'normal' }}
+                  dangerouslySetInnerHTML={{ __html: fn.text || '' }}
+                />
+              </span>
+              <button
+                type="button"
+                onClick={() => handleEdit(idx)}
+                style={{
+                  fontSize: '11px',
+                  padding: '1px 6px',
+                  border: '1px solid #aaa',
+                  borderRadius: '3px',
+                  background: 'white',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+                title={`Edit endnote ${idx + 1}`}
+              >
+                Edit
+              </button>
+            </div>
           </li>
         ))}
       </ol>
@@ -643,7 +642,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Insert Footnote"
+      aria-label="Manage Endnotes"
       onKeyDown={handleKeyDown}
       style={{
         position: 'fixed',
@@ -666,7 +665,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
         boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
       }}>
         <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>
-          Manage Footnotes
+          Manage Endnotes
         </h2>
 
         {/* New footnote textarea */}
@@ -674,7 +673,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
           htmlFor="footnote-new-text"
           style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '14px' }}
         >
-          New footnote:
+          New endnote:
         </label>
         <textarea
           id="footnote-new-text"
@@ -682,7 +681,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
           value={newText}
           onChange={(e) => { setNewText(e.target.value); setSelectedId(''); }}
           rows={4}
-          placeholder="Enter footnote text (HTML is supported)…"
+          placeholder="Enter endnote text (HTML is supported)…"
           style={{
             width: '100%',
             boxSizing: 'border-box',
@@ -693,14 +692,14 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
             fontSize: '14px',
             resize: 'vertical',
           }}
-          aria-label="New footnote text"
+          aria-label="New endnote text"
         />
 
         {/* Existing footnotes list */}
         {existingFootnotes.length > 0 && (
           <div style={{ marginTop: '16px' }}>
             <p style={{ margin: '0 0 8px', fontWeight: 500, fontSize: '14px' }}>
-              — OR — choose an existing footnote:
+              — OR — choose an existing endnote:
             </p>
             <div style={{
               maxHeight: '180px',

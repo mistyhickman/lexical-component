@@ -110,6 +110,431 @@ const ToolbarWrapper = styled.div`
   }
 `;
 
+// ─── Alignment dropdown data ──────────────────────────────────────────────────
+
+const ALIGN_OPTIONS = [
+  {
+    key: 'alignleft',
+    label: 'Align Left',
+    icon: (
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+        <rect x="0" y="0" width="15" height="2" rx="1"/>
+        <rect x="0" y="4" width="9"  height="2" rx="1"/>
+        <rect x="0" y="9" width="12" height="2" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'aligncenter',
+    label: 'Align Center',
+    icon: (
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+        <rect x="0" y="0" width="15" height="2" rx="1"/>
+        <rect x="3" y="4" width="9"  height="2" rx="1"/>
+        <rect x="2" y="9" width="11" height="2" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'alignright',
+    label: 'Align Right',
+    icon: (
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+        <rect x="0" y="0" width="15" height="2" rx="1"/>
+        <rect x="6" y="4" width="9"  height="2" rx="1"/>
+        <rect x="3" y="9" width="12" height="2" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'alignjustify',
+    label: 'Align Justify',
+    icon: (
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+        <rect x="0" y="0" width="15" height="2" rx="1"/>
+        <rect x="0" y="4" width="15" height="2" rx="1"/>
+        <rect x="0" y="9" width="15" height="2" rx="1"/>
+      </svg>
+    ),
+  },
+];
+
+/**
+ * AlignDropdown - Compact dropdown that replaces the four individual alignment
+ * buttons. Shows an SVG icon + label for each option that is present in tools.
+ */
+function AlignDropdown({ tools, onAlignLeft, onAlignCenter, onAlignRight, onAlignJustify, buttonStyle }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const handlers = {
+    alignleft:   onAlignLeft,
+    aligncenter: onAlignCenter,
+    alignright:  onAlignRight,
+    alignjustify: onAlignJustify,
+  };
+
+  const visibleOptions = ALIGN_OPTIONS.filter(opt => tools.includes(opt.key));
+
+  // Close when the user clicks outside the dropdown
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e) => {
+      if (!containerRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  if (visibleOptions.length === 0) return null;
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{ ...buttonStyle, gap: '4px' }}
+        title="Text Alignment"
+        aria-label="Text Alignment"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {/* Show the left-align icon as the default visual cue */}
+        <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+          <rect x="0" y="0" width="15" height="2" rx="1"/>
+          <rect x="0" y="4" width="9"  height="2" rx="1"/>
+          <rect x="0" y="9" width="12" height="2" rx="1"/>
+        </svg>
+        <span style={{ fontSize: '10px', lineHeight: 1 }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Text Alignment"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 2px)',
+            left: 0,
+            zIndex: 100,
+            background: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '3px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            minWidth: '150px',
+          }}
+        >
+          {visibleOptions.map(opt => (
+            <button
+              key={opt.key}
+              type="button"
+              role="option"
+              onClick={() => { handlers[opt.key](); setOpen(false); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '7px 12px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: '13px',
+                textAlign: 'left',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#f0f0f0'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >
+              {opt.icon}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── List-type dropdown data ───────────────────────────────────────────────────
+
+const LIST_OPTIONS = [
+  {
+    key: 'bullist',
+    label: 'Bullet List',
+    icon: (
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+        <circle cx="2" cy="1.5" r="1.5"/>
+        <rect x="5" y="0"  width="10" height="2" rx="1"/>
+        <circle cx="2" cy="5.5" r="1.5"/>
+        <rect x="5" y="4"  width="7"  height="2" rx="1"/>
+        <circle cx="2" cy="9.5" r="1.5"/>
+        <rect x="5" y="8"  width="9"  height="2" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'numlist',
+    label: 'Numbered List',
+    icon: (
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+        <rect x="0" y="0" width="3.5" height="3" rx="0.5" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="5" y="0.5" width="10" height="2" rx="1"/>
+        <rect x="0" y="4" width="3.5" height="3" rx="0.5" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="5" y="4.5" width="7"  height="2" rx="1"/>
+        <rect x="0" y="8" width="3.5" height="3" rx="0.5" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="5" y="8.5" width="9"  height="2" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'checklist',
+    label: 'Check List',
+    icon: (
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+        <rect x="0" y="0"  width="3.5" height="3" rx="0.5"/>
+        <polyline points="0.5,1.5 1.5,2.5 3,0.5" fill="none" stroke="white" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round"/>
+        <rect x="5" y="0.5" width="10" height="2" rx="1"/>
+        <rect x="0" y="4"  width="3.5" height="3" rx="0.5" fill="none" stroke="currentColor" strokeWidth="0.8"/>
+        <rect x="5" y="4.5" width="7"  height="2" rx="1"/>
+        <rect x="0" y="8"  width="3.5" height="3" rx="0.5"/>
+        <polyline points="0.5,9.5 1.5,10.5 3,8.5" fill="none" stroke="white" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round"/>
+        <rect x="5" y="8.5" width="9"  height="2" rx="1"/>
+      </svg>
+    ),
+  },
+];
+
+/**
+ * ListDropdown - Compact dropdown that replaces the three individual list-type
+ * buttons. Shows an SVG icon + label for each option present in tools.
+ */
+function ListDropdown({ tools, onBulletList, onNumberList, onCheckList, buttonStyle }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const handlers = {
+    bullist:   onBulletList,
+    numlist:   onNumberList,
+    checklist: onCheckList,
+  };
+
+  const visibleOptions = LIST_OPTIONS.filter(opt => tools.includes(opt.key));
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e) => {
+      if (!containerRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  if (visibleOptions.length === 0) return null;
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{ ...buttonStyle, gap: '4px' }}
+        title="List Type"
+        aria-label="List Type"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {/* Bullet-list icon as the default visual cue */}
+        <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
+          <circle cx="2" cy="1.5" r="1.5"/>
+          <rect x="5" y="0"  width="10" height="2" rx="1"/>
+          <circle cx="2" cy="5.5" r="1.5"/>
+          <rect x="5" y="4"  width="7"  height="2" rx="1"/>
+          <circle cx="2" cy="9.5" r="1.5"/>
+          <rect x="5" y="8"  width="9"  height="2" rx="1"/>
+        </svg>
+        <span style={{ fontSize: '10px', lineHeight: 1 }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="List Type"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 2px)',
+            left: 0,
+            zIndex: 100,
+            background: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '3px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            minWidth: '160px',
+          }}
+        >
+          {visibleOptions.map(opt => (
+            <button
+              key={opt.key}
+              type="button"
+              role="option"
+              onClick={() => { handlers[opt.key](); setOpen(false); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '7px 12px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: '13px',
+                textAlign: 'left',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#f0f0f0'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >
+              {opt.icon}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Clipboard dropdown data ───────────────────────────────────────────────────
+
+const CLIPBOARD_OPTIONS = [
+  {
+    key: 'cut',
+    label: 'Cut',
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+        <circle cx="3" cy="11" r="2.2"/>
+        <circle cx="3" cy="3"  r="2.2"/>
+        <line x1="4.8" y1="9.6"  x2="13" y2="1.5"/>
+        <line x1="4.8" y1="4.4"  x2="13" y2="12.5"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'copy',
+    label: 'Copy',
+    icon: (
+      <svg width="13" height="14" viewBox="0 0 13 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3.5" y="0"   width="9" height="10.5" rx="1"/>
+        <rect x="0"   y="3.5" width="9" height="10.5" rx="1" fill="white"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'paste',
+    label: 'Paste',
+    icon: (
+      <svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+        <rect x="0.5" y="2"   width="11" height="12" rx="1"/>
+        <rect x="3.5" y="0.5" width="5"  height="3"  rx="0.5"/>
+        <line x1="2.5" y1="6.5" x2="9.5" y2="6.5"/>
+        <line x1="2.5" y1="9"   x2="7.5" y2="9"/>
+      </svg>
+    ),
+  },
+];
+
+/**
+ * ClipboardDropdown - Compact dropdown for Cut, Copy, and Paste actions.
+ * Shows an SVG icon + label for each option present in tools.
+ */
+function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const handlers = {
+    cut:   onCut,
+    copy:  onCopy,
+    paste: onPaste,
+  };
+
+  const visibleOptions = CLIPBOARD_OPTIONS.filter(opt => tools.includes(opt.key));
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e) => {
+      if (!containerRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  if (visibleOptions.length === 0) return null;
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{ ...buttonStyle, gap: '4px' }}
+        title="Clipboard"
+        aria-label="Clipboard"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {/* Clipboard icon as the visual cue */}
+        <svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+          <rect x="0.5" y="2"   width="11" height="12" rx="1"/>
+          <rect x="3.5" y="0.5" width="5"  height="3"  rx="0.5"/>
+          <line x1="2.5" y1="6.5" x2="9.5" y2="6.5"/>
+          <line x1="2.5" y1="9"   x2="7.5" y2="9"/>
+        </svg>
+        <span style={{ fontSize: '10px', lineHeight: 1 }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Clipboard"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 2px)',
+            left: 0,
+            zIndex: 100,
+            background: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '3px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            minWidth: '130px',
+          }}
+        >
+          {visibleOptions.map(opt => (
+            <button
+              key={opt.key}
+              type="button"
+              role="option"
+              onClick={() => { handlers[opt.key](); setOpen(false); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '7px 12px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: '13px',
+                textAlign: 'left',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#f0f0f0'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >
+              {opt.icon}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * ToolbarPlugin - Main toolbar component
  *
@@ -998,105 +1423,27 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
       {(tools.includes('bold') || tools.includes('italic') || tools.includes('underline')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
-      {tools.includes('alignleft') && (
-        <button
-            type="button"
-          onClick={formatAlignLeft}
-          style={buttonStyle}
-          title="Align Left"
-          aria-label="Align Left"
-        >
-          {/* Three lines, all anchored to the LEFT edge, varying lengths */}
-          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
-            <rect x="0" y="0" width="15" height="2" rx="1"/>
-            <rect x="0" y="4" width="9"  height="2" rx="1"/>
-            <rect x="0" y="9" width="12" height="2" rx="1"/>
-          </svg>
-        </button>
-      )}
-      {tools.includes('aligncenter') && (
-        <button
-            type="button"
-          onClick={formatAlignCenter}
-          style={buttonStyle}
-          title="Align Center"
-          aria-label="Align Center"
-        >
-          {/* Three lines, all CENTERED horizontally, varying lengths */}
-          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
-            <rect x="0" y="0" width="15" height="2" rx="1"/>
-            <rect x="3" y="4" width="9"  height="2" rx="1"/>
-            <rect x="2" y="9" width="11" height="2" rx="1"/>
-          </svg>
-        </button>
-      )}
-      {tools.includes('alignright') && (
-        <button
-            type="button"
-          onClick={formatAlignRight}
-          style={buttonStyle}
-          title="Align Right"
-          aria-label="Align Right"
-        >
-          {/* Three lines, all anchored to the RIGHT edge, varying lengths */}
-          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
-            <rect x="0" y="0" width="15" height="2" rx="1"/>
-            <rect x="6" y="4" width="9"  height="2" rx="1"/>
-            <rect x="3" y="9" width="12" height="2" rx="1"/>
-          </svg>
-        </button>
-      )}
-      {tools.includes('alignjustify') && (
-        <button
-            type="button"
-          onClick={formatAlignJustify}
-          style={buttonStyle}
-          title="Justify"
-          aria-label="Justify"
-        >
-          {/* Three lines, ALL the same full width (justified/flush both sides) */}
-          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true">
-            <rect x="0" y="0" width="15" height="2" rx="1"/>
-            <rect x="0" y="4" width="15" height="2" rx="1"/>
-            <rect x="0" y="9" width="15" height="2" rx="1"/>
-          </svg>
-        </button>
+      {(tools.includes('alignleft') || tools.includes('aligncenter') || tools.includes('alignright') || tools.includes('alignjustify')) && (
+        <AlignDropdown
+          tools={tools}
+          onAlignLeft={formatAlignLeft}
+          onAlignCenter={formatAlignCenter}
+          onAlignRight={formatAlignRight}
+          onAlignJustify={formatAlignJustify}
+          buttonStyle={buttonStyle}
+        />
       )}
 
-      {(tools.includes('alignleft') || tools.includes('aligncenter')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
+      {(tools.includes('alignleft') || tools.includes('aligncenter') || tools.includes('alignright') || tools.includes('alignjustify')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
-      {tools.includes('bullist') && (
-        <button
-            type="button"
-          onClick={insertBulletList}
-          style={buttonStyle}
-          title="Bullet List"
-          aria-label="Bullet List"
-        >
-          ⁃
-        </button>
-      )}
-      {tools.includes('numlist') && (
-        <button
-            type="button"
-          onClick={insertNumberList}
-          style={buttonStyle}
-          title="Numbered List"
-          aria-label="Numbered List"
-        >
-          1.
-        </button>
-      )}
-      {tools.includes('checklist') && (
-        <button
-            type="button"
-          onClick={insertCheckList}
-          style={buttonStyle}
-          title="Check List"
-          aria-label="Check List"
-        >
-          ☑
-        </button>
+      {(tools.includes('bullist') || tools.includes('numlist') || tools.includes('checklist')) && (
+        <ListDropdown
+          tools={tools}
+          onBulletList={insertBulletList}
+          onNumberList={insertNumberList}
+          onCheckList={insertCheckList}
+          buttonStyle={buttonStyle}
+        />
       )}
       {tools.includes('outdent') && (
         <button
@@ -1121,54 +1468,19 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         </button>
       )}
 
-      {(tools.includes('bullist') || tools.includes('numlist')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
+      {(tools.includes('bullist') || tools.includes('numlist') || tools.includes('checklist')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
-      {tools.includes('copy') && (
-        <button
-            type="button"
-          onClick={handleCopy}
-          style={buttonStyle}
-          title="Copy"
-          aria-label="Copy"
-        >
-          📋
-        </button>
-      )}
-      {tools.includes('cut') && (
-        <button
-            type="button"
-          onClick={handleCut}
-          style={buttonStyle}
-          title="Cut"
-          aria-label="Cut"
-        >
-          ✂️
-        </button>
-      )}
-      {tools.includes('paste') && (
-        <button
-            type="button"
-          onClick={handlePaste}
-          style={buttonStyle}
-          title="Paste"
-          aria-label="Paste"
-        >
-          📄
-        </button>
-      )}
-      {tools.includes('pasteword') && (
-        <button
-            type="button"
-          onClick={handlePasteWord}
-          style={buttonStyle}
-          title="Paste as Plain Text"
-          aria-label="Paste as Plain Text"
-        >
-          📝
-        </button>
+      {(tools.includes('cut') || tools.includes('copy') || tools.includes('paste')) && (
+        <ClipboardDropdown
+          tools={tools}
+          onCut={handleCut}
+          onCopy={handleCopy}
+          onPaste={handlePaste}
+          buttonStyle={buttonStyle}
+        />
       )}
 
-      {(tools.includes('copy') || tools.includes('paste')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
+      {(tools.includes('cut') || tools.includes('copy') || tools.includes('paste')) && <div style={separatorStyle} role="separator" aria-orientation="vertical"></div>}
 
       {tools.includes('fontsize') && (
         <select
@@ -1305,8 +1617,8 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             type="button"
           onClick={insertFootnote}
           style={buttonStyle}
-          title="Insert Footnote"
-          aria-label="Insert Footnote"
+          title="Insert Endnote"
+          aria-label="Insert Endnote"
         >
           †
         </button>
