@@ -976,18 +976,53 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
     if (container) {
       if (!isMaximized) {
-        // Maximize: Make this editor fill the entire screen
-        container.style.position = 'fixed'; // Fixed position relative to viewport
+        // Maximize: fill the entire viewport.
+        // Use a flex column chain so the editing area grows to fill the space
+        // left over after the toolbar, rather than stopping at its maxHeight.
+        container.style.position = 'fixed';
         container.style.top = '0';
         container.style.left = '0';
-        container.style.width = '100vw'; // 100% of viewport width
-        container.style.height = '100vh'; // 100% of viewport height
-        container.style.zIndex = '9999'; // Very high z-index to appear on top
+        container.style.width = '100vw';
+        container.style.height = '100vh';
+        container.style.zIndex = '9999';
         container.style.backgroundColor = 'white';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+
+        const wrapper = container.querySelector('.lexical-editor-wrapper');
+        if (wrapper) {
+          wrapper.style.flex = '1';
+          wrapper.style.display = 'flex';
+          wrapper.style.flexDirection = 'column';
+          wrapper.style.overflow = 'hidden';
+          wrapper.style.borderRadius = '0';
+          wrapper.style.border = 'none';
+        }
+
+        const inner = container.querySelector('.lexical-editor-inner');
+        if (inner) {
+          inner.style.flex = '1';
+          inner.style.display = 'flex';
+          inner.style.flexDirection = 'column';
+          inner.style.overflow = 'hidden';
+        }
+
+        const scroller = container.querySelector('.lexical-editor-scroller');
+        if (scroller) {
+          scroller.style.flex = '1';
+          scroller.style.overflow = 'auto';
+        }
+
+        // Remove the maxHeight cap on the ContentEditable so it fills the scroller
+        if (rootElement) {
+          rootElement.style.maxHeight = 'none';
+          rootElement.style.minHeight = '100%';
+          rootElement.style.resize = 'none';
+        }
+
         setIsMaximized(true);
       } else {
-        // Restore: Clear all the styles we added
-        // Setting to '' removes the inline style
+        // Restore: clear all inline styles added during maximize
         container.style.position = '';
         container.style.top = '';
         container.style.left = '';
@@ -995,6 +1030,39 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
         container.style.height = '';
         container.style.zIndex = '';
         container.style.backgroundColor = '';
+        container.style.display = '';
+        container.style.flexDirection = '';
+
+        const wrapper = container.querySelector('.lexical-editor-wrapper');
+        if (wrapper) {
+          wrapper.style.flex = '';
+          wrapper.style.display = '';
+          wrapper.style.flexDirection = '';
+          wrapper.style.overflow = '';
+          wrapper.style.borderRadius = '';
+          wrapper.style.border = '';
+        }
+
+        const inner = container.querySelector('.lexical-editor-inner');
+        if (inner) {
+          inner.style.flex = '';
+          inner.style.display = '';
+          inner.style.flexDirection = '';
+          inner.style.overflow = '';
+        }
+
+        const scroller = container.querySelector('.lexical-editor-scroller');
+        if (scroller) {
+          scroller.style.flex = '';
+          scroller.style.overflow = '';
+        }
+
+        if (rootElement) {
+          rootElement.style.maxHeight = '';
+          rootElement.style.minHeight = '';
+          rootElement.style.resize = '';
+        }
+
         setIsMaximized(false);
       }
     }
