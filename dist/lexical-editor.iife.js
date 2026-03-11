@@ -235,6 +235,45 @@ font-size: 11px;
           margin: 0 0 10px 0;
         }
 
+        /* ===== STYLE ISOLATION =====
+           Prevent host-page stylesheets from bleeding into editor block elements.
+           !important ensures these rules win over the application's author styles,
+           including rules the application itself marks !important.
+           User-applied inline styles (text colour, font family, etc.) still take
+           precedence because inline styles always outrank stylesheet !important rules,
+           so the colour picker, font picker, etc. continue to work normally. */
+        .lexical-content-editable h1,
+        .lexical-content-editable h2,
+        .lexical-content-editable h3,
+        .lexical-content-editable h4,
+        .lexical-content-editable h5,
+        .lexical-content-editable h6,
+        .lexical-content-editable p,
+        .lexical-content-editable pre,
+        .lexical-content-editable blockquote,
+        .lexical-content-editable li {
+          color: #000000 !important;
+          background-color: transparent !important;
+          background-image: none !important;
+          border: none !important;
+          box-shadow: none !important;
+          text-transform: none !important;
+          text-shadow: none !important;
+          text-decoration: none !important;
+          letter-spacing: normal !important;
+          word-spacing: normal !important;
+          font-variant: normal !important;
+        }
+
+        /* Headings: also lock size, weight, style, margin, and padding so
+           application rules cannot push them into unexpected dimensions. */
+        .lexical-content-editable h1 { font-size: 2em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-content-editable h2 { font-size: 1.5em !important;  font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-content-editable h3 { font-size: 1.17em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-content-editable h4 { font-size: 1em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+
         /* Code/Preformatted block */
         .lexical-code-block {
           background-color: #f5f5f5;
