@@ -271,6 +271,31 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-content-editable colgroup { display: table-column-group !important; }
         .lexical-content-editable col      { display: table-column !important; }
 
+        /* ===== RAW HTML BLOCK ISOLATION =====
+           The outer wrapper div that Lexical creates for RawHtmlNode
+           (contentEditable=false) must not be affected by application CSS
+           rules targeting div elements (e.g. position:absolute, float:left,
+           negative margins). Lock it to a neutral block layout so it renders
+           inline in the document flow and its inner HTML (tables, styled divs,
+           etc.) is laid out on its own terms. */
+        .lexical-raw-block {
+          display: block !important;
+          position: static !important;
+          float: none !important;
+          clear: both !important;
+          z-index: auto !important;
+          overflow: visible !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: none !important;
+          background: none !important;
+          width: auto !important;
+          height: auto !important;
+          max-width: none !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+
         /* Code/Preformatted block */
         .lexical-code-block {
           background-color: #f5f5f5;
