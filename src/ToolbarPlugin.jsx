@@ -1581,7 +1581,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Font Family"
           aria-label="Font Family"
         >
-          <option value="default">Default</option>
+          <option value="default">Font (Default)</option>
           <option value="Arial, sans-serif">Arial</option>
           <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
           <option value="'Courier New', monospace">Courier New</option>
@@ -1670,7 +1670,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           title="Insert Endnote"
           aria-label="Insert Endnote"
         >
-          †
+          ※
         </button>
       )}
       {tools.includes('horizontalrule') && (
@@ -1724,7 +1724,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           aria-label={showSource ? "Close source code view" : "View source code"}
           aria-pressed={showSource}
         >
-          {'<>'}
+          {'</>'}
         </button>
       )}
     </div>
