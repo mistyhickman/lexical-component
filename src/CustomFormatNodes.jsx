@@ -353,6 +353,7 @@ export class RawHtmlNode extends DecoratorNode {
   createDOM() {
     const el = document.createElement('div');
     el.contentEditable = 'false';
+    el.className = 'lexical-raw-block';
     return el;
   }
 
