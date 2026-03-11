@@ -290,13 +290,14 @@ export function $createStyleSheetNode(styleOuterHtml) {
 // RawHtmlNode — preserves arbitrary HTML blocks verbatim
 //
 // Handles:
-//   - <table>  (priority 4, overrides TableNode at priority 0)
 //   - <div> with any attributes (priority 4, overrides DivNode at priority 0)
 //     Plain <div> elements (no attributes) fall through to DivNode.
 //
-// The original outerHTML is stored and restored on export, preventing
-// Lexical from restructuring, adding colgroup/styling, or stripping
-// attributes from content loaded from the database.
+// NOTE: <table> is intentionally NOT intercepted here. Tables are handled
+// by Lexical's own TableNode/TableRowNode/TableCellNode so they remain
+// fully editable after source-view round-trips. RawHtmlNode previously
+// captured tables at priority 4, which caused them to become non-editable
+// (contentEditable=false) after toggling source view.
 // =====================================================================
 
 export class RawHtmlNode extends DecoratorNode {
@@ -315,12 +316,8 @@ export class RawHtmlNode extends DecoratorNode {
 
   static importDOM() {
     return {
-      table: () => ({
-        conversion: (element) => ({ node: new RawHtmlNode(element.outerHTML) }),
-        priority: 4,
-      }),
       // Capture <div> elements that have attributes (class, id, style, data-*, etc.)
-      // so their markup is preserved verbatim, just like tables.
+      // so their markup is preserved verbatim.
       // Plain <div> elements (no attributes) return null, which falls through
       // to DivNode at priority 0 so user-created divs remain editable.
       div: () => ({
