@@ -252,6 +252,25 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
         .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
 
+        /* ===== TABLE STRUCTURE ISOLATION =====
+           Lock the display roles for every table element so that application
+           CSS (e.g. "td { display: block }" or "tr { float: left }") cannot
+           break the browser's table layout engine and cause cells to overlap.
+           We only reset the structural display and float properties here —
+           visual properties (border, padding, color, background) are left
+           entirely to the content's own <style> tag, which scopeStylesForEditor
+           rewrites to .lexical-content-editable selectors so they win over
+           unscoped application CSS without leaking out to the host page. */
+        .lexical-content-editable table    { display: table !important;              float: none !important; }
+        .lexical-content-editable thead    { display: table-header-group !important; float: none !important; }
+        .lexical-content-editable tbody    { display: table-row-group !important;    float: none !important; }
+        .lexical-content-editable tfoot    { display: table-footer-group !important; float: none !important; }
+        .lexical-content-editable tr       { display: table-row !important;          float: none !important; }
+        .lexical-content-editable td,
+        .lexical-content-editable th       { display: table-cell !important;         float: none !important; }
+        .lexical-content-editable colgroup { display: table-column-group !important; }
+        .lexical-content-editable col      { display: table-column !important; }
+
         /* Code/Preformatted block */
         .lexical-code-block {
           background-color: #f5f5f5;

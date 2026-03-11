@@ -374,7 +374,12 @@ export class RawHtmlNode extends DecoratorNode {
   }
 
   decorate() {
+    // display:contents makes this wrapper div invisible to the layout engine,
+    // so the table (or other raw HTML) is laid out as a direct child of the
+    // outer contentEditable=false div rather than being buried inside an extra
+    // block wrapper that can distort table cell alignment and widths.
     return React.createElement('div', {
+      style: { display: 'contents' },
       dangerouslySetInnerHTML: { __html: this.__rawHtml },
     });
   }
