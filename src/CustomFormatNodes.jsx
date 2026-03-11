@@ -290,14 +290,16 @@ export function $createStyleSheetNode(styleOuterHtml) {
 // RawHtmlNode — preserves arbitrary HTML blocks verbatim
 //
 // Handles:
+//   - <table>  (priority 4, overrides TableNode at priority 1)
+//     When loading content from the database, tables are captured here so
+//     their original HTML (inline styles, attributes, colgroup, etc.) is
+//     stored and re-emitted verbatim.  When source view is being applied
+//     back into the editor the global flag window._lexicalApplyingSourceView
+//     is set to true, causing the conversion to return null instead — which
+//     lets Lexical's own TableNode handle it so the table remains fully
+//     editable after a source-view round-trip.
 //   - <div> with any attributes (priority 4, overrides DivNode at priority 0)
 //     Plain <div> elements (no attributes) fall through to DivNode.
-//
-// NOTE: <table> is intentionally NOT intercepted here. Tables are handled
-// by Lexical's own TableNode/TableRowNode/TableCellNode so they remain
-// fully editable after source-view round-trips. RawHtmlNode previously
-// captured tables at priority 4, which caused them to become non-editable
-// (contentEditable=false) after toggling source view.
 // =====================================================================
 
 export class RawHtmlNode extends DecoratorNode {
@@ -316,6 +318,16 @@ export class RawHtmlNode extends DecoratorNode {
 
   static importDOM() {
     return {
+      // Preserve tables verbatim when loading from the database.
+      // When source view is being applied (flag is true), return null so
+      // Lexical's TableNode handles the element and the table stays editable.
+      table: () => ({
+        conversion: (element) => {
+          if (window._lexicalApplyingSourceView) return null;
+          return { node: new RawHtmlNode(element.outerHTML) };
+        },
+        priority: 4,
+      }),
       // Capture <div> elements that have attributes (class, id, style, data-*, etc.)
       // so their markup is preserved verbatim.
       // Plain <div> elements (no attributes) return null, which falls through

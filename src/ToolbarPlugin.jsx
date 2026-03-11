@@ -1143,23 +1143,32 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
       // Load the style-free HTML into Lexical.
       // Tagged 'source-import' so SyncContentPlugin skips this one update
       // (the hidden field was already written above).
+      // The _lexicalApplyingSourceView flag tells RawHtmlNode.importDOM to
+      // yield <table> elements to Lexical's TableNode so they stay editable
+      // after a source-view round-trip (without the flag, tables would be
+      // captured as non-editable RawHtmlNodes just like DB-loaded tables).
       editor.update(() => {
-        const root = $getRoot();
-        root.clear();
+        window._lexicalApplyingSourceView = true;
+        try {
+          const root = $getRoot();
+          root.clear();
 
-        const parser = new DOMParser();
-        const dom = parser.parseFromString(strippedHtml, 'text/html');
-        const nodes = $generateNodesFromDOM(editor, dom);
+          const parser = new DOMParser();
+          const dom = parser.parseFromString(strippedHtml, 'text/html');
+          const nodes = $generateNodesFromDOM(editor, dom);
 
-        nodes.forEach(node => {
-          if ($isElementNode(node) || $isDecoratorNode(node)) {
-            root.append(node);
-          } else {
-            const paragraph = $createParagraphNode();
-            paragraph.append(node);
-            root.append(paragraph);
-          }
-        });
+          nodes.forEach(node => {
+            if ($isElementNode(node) || $isDecoratorNode(node)) {
+              root.append(node);
+            } else {
+              const paragraph = $createParagraphNode();
+              paragraph.append(node);
+              root.append(paragraph);
+            }
+          });
+        } finally {
+          window._lexicalApplyingSourceView = false;
+        }
       }, { tag: 'source-import' });
 
       setSourceError(null);
