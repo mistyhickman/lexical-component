@@ -470,6 +470,7 @@ function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
   };
 
   const visibleOptions = CLIPBOARD_OPTIONS.filter(opt => tools.includes(opt.key));
+  const defaultOption = visibleOptions.find(opt => opt.key === 'cut') || visibleOptions[0];
 
   useEffect(() => {
     if (!open) return;
@@ -494,13 +495,7 @@ function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        {/* Clipboard icon as the visual cue */}
-        <svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-          <rect x="0.5" y="2"   width="11" height="12" rx="1"/>
-          <rect x="3.5" y="0.5" width="5"  height="3"  rx="0.5"/>
-          <line x1="2.5" y1="6.5" x2="9.5" y2="6.5"/>
-          <line x1="2.5" y1="9"   x2="7.5" y2="9"/>
-        </svg>
+        {defaultOption.icon}
         <span style={{ fontSize: '10px', lineHeight: 1 }}>▾</span>
       </button>
 
