@@ -64,6 +64,91 @@ export function extractAndStripStyles(html) {
   return { stylesHtml, strippedHtml };
 }
 
+/**
+ * scopeStylesForEditor - Rewrites CSS selectors inside <style> blocks so they
+ * only apply within the editor's content-editable area.
+ *
+ * Why this is needed:
+ *   Without scoping, `td { border: 1px solid black }` in the content's style
+ *   tag competes with the application's own `td { ... }` rules on equal footing.
+ *   By rewriting it to `.lexical-content-editable td { border: 1px solid black }`,
+ *   the content's styles gain higher specificity and win over unscoped application
+ *   CSS.  The styles are also contained to the editor so they don't leak out and
+ *   affect the rest of the host page.
+ *
+ * @param {string} stylesHtml - One or more raw <style>…</style> strings
+ * @returns {string} The same tags with all selectors scoped to the editor
+ */
+export function scopeStylesForEditor(stylesHtml) {
+  if (!stylesHtml) return stylesHtml;
+  const scope = '.lexical-content-editable';
+  return stylesHtml.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (_, attrs, css) => {
+    return `<style${attrs}>${_scopeCssBlock(css, scope)}</style>`;
+  });
+}
+
+function _scopeSelector(selector, scope) {
+  return selector.split(',').map(s => {
+    const trimmed = s.trim();
+    if (!trimmed) return '';
+    // Replace page-root selectors with the editor scope itself
+    if (/^(html|body|:root)$/i.test(trimmed)) return scope;
+    return `${scope} ${trimmed}`;
+  }).filter(Boolean).join(', ');
+}
+
+function _scopeCssBlock(css, scope) {
+  let result = '';
+  let i = 0;
+
+  while (i < css.length) {
+    // Whitespace — copy through
+    if (/\s/.test(css[i])) { result += css[i++]; continue; }
+
+    // Comments — copy through
+    if (css[i] === '/' && css[i + 1] === '*') {
+      const end = css.indexOf('*/', i + 2);
+      if (end === -1) { result += css.slice(i); break; }
+      result += css.slice(i, end + 2);
+      i = end + 2;
+      continue;
+    }
+
+    // Find next opening brace to determine what kind of block this is
+    const braceOpen = css.indexOf('{', i);
+    if (braceOpen === -1) { result += css.slice(i); break; }
+
+    const token = css.slice(i, braceOpen).trim();
+
+    // Find matching closing brace (handles nested braces correctly)
+    let depth = 1;
+    let j = braceOpen + 1;
+    while (j < css.length && depth > 0) {
+      if (css[j] === '{') depth++;
+      else if (css[j] === '}') depth--;
+      j++;
+    }
+    const block = css.slice(braceOpen + 1, j - 1);
+
+    if (token.startsWith('@')) {
+      const keyword = (token.match(/^@(\w+)/) || [])[1] || '';
+      if (/^(media|supports|document|layer)$/i.test(keyword)) {
+        // Container @rules — recurse so selectors inside are also scoped
+        result += `${token} {${_scopeCssBlock(block, scope)}}`;
+      } else {
+        // @keyframes, @font-face, @charset, etc. — copy verbatim
+        result += `${token} {${block}}`;
+      }
+    } else if (token) {
+      result += `${_scopeSelector(token, scope)} {${block}}`;
+    }
+
+    i = j;
+  }
+
+  return result;
+}
+
 // HTML import/export utilities for preserving HTML formatting
 import { $generateNodesFromDOM, $generateHtmlFromNodes } from '@lexical/html';
 
@@ -106,9 +191,11 @@ function LoadContentPlugin({ documents, extraStylesRef, styleContainerRef }) {
     extraStylesRef.current = stylesHtml;
 
     // Inject the styles into the hidden div so CSS rules apply visually.
-    // <style> elements apply globally even inside a display:none container.
+    // Selectors are scoped to .lexical-content-editable so they:
+    //   (a) only apply inside the editor, not to the rest of the host page, and
+    //   (b) win over unscoped application CSS due to the higher specificity.
     if (styleContainerRef?.current) {
-      styleContainerRef.current.innerHTML = stylesHtml;
+      styleContainerRef.current.innerHTML = scopeStylesForEditor(stylesHtml);
     }
 
     // Load the style-free HTML into Lexical

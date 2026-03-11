@@ -77,7 +77,7 @@ import TableCreatorPlugin from './TableCreatorPlugin';
 import SourceCodePlugin from './SourceCodePlugin';
 
 // HTML cleanup and style-extraction utilities
-import { cleanExportedHtml, extractAndStripStyles } from './LexicalEditor';
+import { cleanExportedHtml, extractAndStripStyles, scopeStylesForEditor } from './LexicalEditor';
 
 // Footnote dialog
 import { FootnoteDialog } from './FootnotesPlugin';
@@ -1126,9 +1126,11 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
       // Persist styles in the shared ref so SyncContentPlugin can re-attach them
       if (extraStylesRef) extraStylesRef.current = stylesHtml;
 
-      // Inject styles into the hidden container so CSS rules apply visually
+      // Inject styles into the hidden container so CSS rules apply visually.
+      // Selectors are scoped to .lexical-content-editable for the same reason
+      // as LoadContentPlugin — see scopeStylesForEditor in LexicalEditor.jsx.
       if (styleContainerRef?.current) {
-        styleContainerRef.current.innerHTML = stylesHtml;
+        styleContainerRef.current.innerHTML = scopeStylesForEditor(stylesHtml);
       }
 
       // Write the full source HTML to the hidden field immediately as a safety
