@@ -324,7 +324,9 @@ export class RawHtmlNode extends DecoratorNode {
       table: () => ({
         conversion: (element) => {
           if (window._lexicalApplyingSourceView) return null;
-          return { node: new RawHtmlNode(element.outerHTML) };
+          // after: () => [] suppresses recursive child processing — table rows/cells
+          // are already contained in outerHTML and must not become sibling nodes.
+          return { node: new RawHtmlNode(element.outerHTML), after: () => [] };
         },
         priority: 4,
       }),
@@ -335,7 +337,10 @@ export class RawHtmlNode extends DecoratorNode {
       div: () => ({
         conversion: (element) => {
           if (element.hasAttributes()) {
-            return { node: new RawHtmlNode(element.outerHTML) };
+            // after: () => [] suppresses recursive child processing — child elements
+            // are already contained in outerHTML and must not become sibling nodes,
+            // which would cause content to appear duplicated / overlapping.
+            return { node: new RawHtmlNode(element.outerHTML), after: () => [] };
           }
           return null;
         },

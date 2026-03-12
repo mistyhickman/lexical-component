@@ -215,11 +215,12 @@ class LexicalEditorElement extends HTMLElement {
 
         /* ===== STYLE ISOLATION =====
            Prevent host-page stylesheets from bleeding into editor block elements.
-           !important ensures these rules win over the application's author styles,
-           including rules the application itself marks !important.
-           User-applied inline styles (text colour, font family, etc.) still take
-           precedence because inline styles always outrank stylesheet !important rules,
-           so the colour picker, font picker, etc. continue to work normally. */
+           !important ensures these rules win over the application's author styles.
+           NOTE: border is intentionally NOT reset here — inline border styles
+           on content elements (e.g. <h2 style="border-top: 1px solid #000">)
+           would be overridden by !important and silently disappear. Application
+           CSS borders on headings/paragraphs are far less common than legitimate
+           inline borders in stored content, so we leave border alone. */
         .lexical-content-editable h1,
         .lexical-content-editable h2,
         .lexical-content-editable h3,
@@ -233,7 +234,6 @@ class LexicalEditorElement extends HTMLElement {
           color: #000000 !important;
           background-color: transparent !important;
           background-image: none !important;
-          border: none !important;
           box-shadow: none !important;
           text-transform: none !important;
           text-shadow: none !important;
