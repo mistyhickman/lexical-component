@@ -203,6 +203,105 @@ export function $isDivNode(node) {
 }
 
 // =====================================================================
+// AttributedDivNode — an EDITABLE <div> that preserves all original
+// HTML attributes (class, style, id, data-*, etc.) through round-trips.
+//
+// Unlike RawHtmlNode (a DecoratorNode), this extends ElementNode so
+// Lexical treats it as normal editable content.  Children are imported
+// as Lexical child nodes — they remain fully editable.
+//
+// importDOM priority 2: beats plain DivNode (priority 0) for divs that
+// have attributes, but defers to any higher-priority converter.
+// =====================================================================
+
+export class AttributedDivNode extends ElementNode {
+  static getType() {
+    return 'attributed-div';
+  }
+
+  static clone(node) {
+    return new AttributedDivNode(node.__attributes, node.__key);
+  }
+
+  constructor(attributes, key) {
+    super(key);
+    // Store a plain-object copy so the node is self-contained
+    this.__attributes = attributes ? { ...attributes } : {};
+  }
+
+  createDOM(config) {
+    const el = document.createElement('div');
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
+    return el;
+  }
+
+  updateDOM(prevNode, dom) {
+    const prev = prevNode.__attributes;
+    const next = this.__attributes;
+    // Remove attributes that were deleted
+    for (const name of Object.keys(prev)) {
+      if (!(name in next)) dom.removeAttribute(name);
+    }
+    // Add or update changed attributes
+    for (const [name, value] of Object.entries(next)) {
+      if (prev[name] !== value) dom.setAttribute(name, value);
+    }
+    return false; // we updated the DOM manually
+  }
+
+  static importDOM() {
+    return {
+      div: () => ({
+        conversion: (element) => {
+          if (!element.hasAttributes()) return null;
+          const attributes = {};
+          for (const attr of element.attributes) {
+            attributes[attr.name] = attr.value;
+          }
+          return { node: $createAttributedDivNode(attributes) };
+        },
+        priority: 2,
+      }),
+    };
+  }
+
+  exportDOM(editor) {
+    const el = document.createElement('div');
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
+    return { element: el };
+  }
+
+  static importJSON(serializedNode) {
+    const node = $createAttributedDivNode(serializedNode.attributes || {});
+    node.setFormat(serializedNode.format);
+    node.setIndent(serializedNode.indent);
+    node.setDirection(serializedNode.direction);
+    return node;
+  }
+
+  exportJSON() {
+    return {
+      ...super.exportJSON(),
+      type: 'attributed-div',
+      attributes: { ...this.__attributes },
+      version: 1,
+    };
+  }
+}
+
+export function $createAttributedDivNode(attributes) {
+  return $applyNodeReplacement(new AttributedDivNode(attributes));
+}
+
+export function $isAttributedDivNode(node) {
+  return node instanceof AttributedDivNode;
+}
+
+// =====================================================================
 // StyleSheetNode — stores a <style> block
 // Stores the full outerHTML of the <style> element so all attributes
 // (media, type, etc.) are preserved through the round-trip.
@@ -330,22 +429,9 @@ export class RawHtmlNode extends DecoratorNode {
         },
         priority: 4,
       }),
-      // Capture <div> elements that have attributes (class, id, style, data-*, etc.)
-      // so their markup is preserved verbatim.
-      // Plain <div> elements (no attributes) return null, which falls through
-      // to DivNode at priority 0 so user-created divs remain editable.
-      div: () => ({
-        conversion: (element) => {
-          if (element.hasAttributes()) {
-            // after: () => [] suppresses recursive child processing — child elements
-            // are already contained in outerHTML and must not become sibling nodes,
-            // which would cause content to appear duplicated / overlapping.
-            return { node: new RawHtmlNode(element.outerHTML), after: () => [] };
-          }
-          return null;
-        },
-        priority: 4,
-      }),
+      // Note: <div> elements with attributes are handled by AttributedDivNode
+      // (priority 2) which keeps them editable. RawHtmlNode no longer intercepts
+      // divs so content inside attribute-bearing divs remains fully editable.
     };
   }
 
