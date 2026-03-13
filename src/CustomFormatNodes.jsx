@@ -302,6 +302,120 @@ export function $isAttributedDivNode(node) {
 }
 
 // =====================================================================
+// AttributedTableStructureNode — EDITABLE nodes for all table elements
+//
+// Handles: <table> <thead> <tbody> <tfoot> <tr> <td> <th>
+//
+// A single node class covers the entire table element family.
+// __tagName stores which HTML element to create; __attributes stores
+// all original HTML attributes (border, cellpadding, colspan, style,
+// class, etc.) so they survive round-trips through the editor.
+//
+// Extends ElementNode so children (rows → cells → text) become
+// ordinary editable Lexical child nodes — no contenteditable="false".
+//
+// importDOM priority 2: beats Lexical's built-in TableNode family
+// (priority 1) so these nodes are used when loading DB content.
+// =====================================================================
+
+const _TABLE_TAGS = ['table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th'];
+
+export class AttributedTableStructureNode extends ElementNode {
+  static getType() {
+    return 'attributed-table-structure';
+  }
+
+  static clone(node) {
+    return new AttributedTableStructureNode(node.__tagName, node.__attributes, node.__key);
+  }
+
+  constructor(tagName, attributes, key) {
+    super(key);
+    this.__tagName = tagName || 'table';
+    this.__attributes = attributes ? { ...attributes } : {};
+  }
+
+  createDOM(config) {
+    const el = document.createElement(this.__tagName);
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
+    return el;
+  }
+
+  updateDOM(prevNode, dom) {
+    const prev = prevNode.__attributes;
+    const next = this.__attributes;
+    for (const name of Object.keys(prev)) {
+      if (!(name in next)) dom.removeAttribute(name);
+    }
+    for (const [name, value] of Object.entries(next)) {
+      if (prev[name] !== value) dom.setAttribute(name, value);
+    }
+    return false;
+  }
+
+  static importDOM() {
+    const conversions = {};
+    for (const tag of _TABLE_TAGS) {
+      conversions[tag] = () => ({
+        conversion: (element) => {
+          const attributes = {};
+          for (const attr of element.attributes) {
+            attributes[attr.name] = attr.value;
+          }
+          return {
+            node: $createAttributedTableStructureNode(
+              element.tagName.toLowerCase(),
+              attributes
+            ),
+          };
+        },
+        priority: 2,
+      });
+    }
+    return conversions;
+  }
+
+  exportDOM(editor) {
+    const el = document.createElement(this.__tagName);
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
+    return { element: el };
+  }
+
+  static importJSON(serializedNode) {
+    const node = $createAttributedTableStructureNode(
+      serializedNode.tagName || 'table',
+      serializedNode.attributes || {}
+    );
+    node.setFormat(serializedNode.format);
+    node.setIndent(serializedNode.indent);
+    node.setDirection(serializedNode.direction);
+    return node;
+  }
+
+  exportJSON() {
+    return {
+      ...super.exportJSON(),
+      type: 'attributed-table-structure',
+      tagName: this.__tagName,
+      attributes: { ...this.__attributes },
+      version: 1,
+    };
+  }
+}
+
+export function $createAttributedTableStructureNode(tagName, attributes) {
+  return $applyNodeReplacement(new AttributedTableStructureNode(tagName, attributes));
+}
+
+export function $isAttributedTableStructureNode(node) {
+  return node instanceof AttributedTableStructureNode;
+}
+
+// =====================================================================
 // StyleSheetNode — stores a <style> block
 // Stores the full outerHTML of the <style> element so all attributes
 // (media, type, etc.) are preserved through the round-trip.
@@ -416,23 +530,12 @@ export class RawHtmlNode extends DecoratorNode {
   }
 
   static importDOM() {
-    return {
-      // Preserve tables verbatim when loading from the database.
-      // When source view is being applied (flag is true), return null so
-      // Lexical's TableNode handles the element and the table stays editable.
-      table: () => ({
-        conversion: (element) => {
-          if (window._lexicalApplyingSourceView) return null;
-          // after: () => [] suppresses recursive child processing — table rows/cells
-          // are already contained in outerHTML and must not become sibling nodes.
-          return { node: new RawHtmlNode(element.outerHTML), after: () => [] };
-        },
-        priority: 4,
-      }),
-      // Note: <div> elements with attributes are handled by AttributedDivNode
-      // (priority 2) which keeps them editable. RawHtmlNode no longer intercepts
-      // divs so content inside attribute-bearing divs remains fully editable.
-    };
+    // Tables are now handled by AttributedTableStructureNode (priority 2, editable).
+    // Divs with attributes are handled by AttributedDivNode (priority 2, editable).
+    // RawHtmlNode's importDOM is intentionally empty — the class is kept registered
+    // for backward-compatibility with any serialized Lexical JSON that may contain
+    // 'raw-html' nodes from earlier versions of this editor.
+    return {};
   }
 
   exportDOM() {

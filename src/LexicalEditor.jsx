@@ -34,7 +34,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
-import { AddressNode, PreformattedNode, DivNode, AttributedDivNode, RawHtmlNode } from './CustomFormatNodes'; // Custom format nodes
+import { AddressNode, PreformattedNode, DivNode, AttributedDivNode, AttributedTableStructureNode, RawHtmlNode } from './CustomFormatNodes'; // Custom format nodes
 import { FootnoteMarkerNode, FootnoteSectionNode, FootnotesPlugin } from './FootnotesPlugin'; // Footnotes support
 
 // Hook to access the Lexical editor instance from within plugins
@@ -603,8 +603,9 @@ export default function LexicalEditor({
       PreformattedNode, // Enables <pre> blocks
       DivNode, // Enables plain <div> blocks (no attributes, priority 0)
       AttributedDivNode, // Enables <div> blocks with attributes (class/style/id/data-*, priority 2) — editable
+      AttributedTableStructureNode, // Enables <table>/<thead>/<tbody>/<tfoot>/<tr>/<td>/<th> with attributes (priority 2) — editable
       HorizontalRuleNode, // Enables <hr> elements
-      RawHtmlNode, // Preserves <table> verbatim (priority 4 importDOM)
+      RawHtmlNode, // Kept for backward-compatibility with serialized 'raw-html' nodes; no longer intercepts any DOM elements
       FootnoteMarkerNode, // Inline <sup data-footnote-id> reference markers
       FootnoteSectionNode, // Block <section class="footnotes"> list at end of doc
       // Note: <style> tags are handled outside Lexical's node system via
