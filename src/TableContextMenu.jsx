@@ -16,7 +16,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getNodeByKey, $createParagraphNode } from 'lexical';
-import { $createAttributedTableStructureNode } from './CustomFormatNodes';
+import { $createTableRowNode, $createTableCellNode, $isTableRowNode, TableCellHeaderStates } from '@lexical/table';
+import { $createAttributedTableStructureNode, AttributedTableStructureNode } from './CustomFormatNodes';
 import './TableContextMenu.css';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -41,7 +42,9 @@ function serializeStyle(obj) {
     .join('; ');
 }
 
-/** Returns all <tr> AttributedTableStructureNodes across tbody/thead/tfoot. */
+/** Returns all row nodes across tbody/thead/tfoot — works for both
+ *  AttributedTableStructureNode trees (HTML-imported) and native
+ *  TableNode/TableRowNode trees (toolbar-created). */
 function getAllRows(tableNode) {
   if (!tableNode) return [];
   const rows = [];
@@ -51,8 +54,11 @@ function getAllRows(tableNode) {
       rows.push(child);
     } else if (['tbody', 'thead', 'tfoot'].includes(tag)) {
       child.getChildren().forEach((row) => {
-        if (row.__tagName === 'tr') rows.push(row);
+        if (row.__tagName === 'tr' || $isTableRowNode(row)) rows.push(row);
       });
+    } else if ($isTableRowNode(child)) {
+      // Native TableRowNode direct child of TableNode (no tbody wrapper)
+      rows.push(child);
     }
   });
   return rows;
@@ -267,7 +273,16 @@ export default function TableContextMenuPlugin() {
     editor.update(() => {
       const cellNode = $getNodeByKey(menu.cellKey);
       if (!cellNode) return;
-      cellNode.getWritable().__tagName = cellNode.__tagName === 'td' ? 'th' : 'td';
+      if (cellNode instanceof AttributedTableStructureNode) {
+        // HTML-imported table — toggle td ↔ th via __tagName
+        cellNode.getWritable().__tagName = cellNode.__tagName === 'td' ? 'th' : 'td';
+      } else {
+        // Toolbar-created table — toggle __headerState COLUMN bit
+        const isHeader = cellNode.hasHeader();
+        cellNode.getWritable().__headerState = isHeader
+          ? TableCellHeaderStates.NO_STATUS
+          : TableCellHeaderStates.COLUMN;
+      }
     });
     close();
   };
@@ -278,9 +293,20 @@ export default function TableContextMenuPlugin() {
       const rowNode = $getNodeByKey(menu.rowKey);
       if (!rowNode) return;
       const cells = rowNode.getChildren();
-      const allTh = cells.every((c) => c.__tagName === 'th');
-      const newTag = allTh ? 'td' : 'th';
-      cells.forEach((c) => { c.getWritable().__tagName = newTag; });
+      if (cells.length === 0) return;
+      if (cells[0] instanceof AttributedTableStructureNode) {
+        // HTML-imported table — toggle __tagName on each cell
+        const allTh = cells.every((c) => c.__tagName === 'th');
+        const newTag = allTh ? 'td' : 'th';
+        cells.forEach((c) => { c.getWritable().__tagName = newTag; });
+      } else {
+        // Toolbar-created table — toggle ROW header state on each cell
+        const allHeaders = cells.every((c) => c.hasHeader());
+        const newState = allHeaders
+          ? TableCellHeaderStates.NO_STATUS
+          : TableCellHeaderStates.ROW;
+        cells.forEach((c) => { c.getWritable().__headerState = newState; });
+      }
     });
     close();
   };
@@ -291,11 +317,24 @@ export default function TableContextMenuPlugin() {
       const rowNode = $getNodeByKey(menu.rowKey);
       if (!rowNode) return;
       const numCols = Math.max(rowNode.getChildrenSize(), 1);
-      const newRow = $createAttributedTableStructureNode('tr', {});
-      for (let i = 0; i < numCols; i++) {
-        const cell = $createAttributedTableStructureNode('td', {});
-        cell.append($createParagraphNode());
-        newRow.append(cell);
+      let newRow;
+      if (rowNode instanceof AttributedTableStructureNode) {
+        // HTML-imported table — keep using AttributedTableStructureNode
+        newRow = $createAttributedTableStructureNode('tr', {});
+        for (let i = 0; i < numCols; i++) {
+          const cell = $createAttributedTableStructureNode('td', {});
+          cell.append($createParagraphNode());
+          newRow.append(cell);
+        }
+      } else {
+        // Toolbar-created table — use native TableRowNode/TableCellNode so
+        // TableNode.exportDOM() doesn't throw "Expected to find row node"
+        newRow = $createTableRowNode();
+        for (let i = 0; i < numCols; i++) {
+          const cell = $createTableCellNode(0);
+          cell.append($createParagraphNode());
+          newRow.append(cell);
+        }
       }
       if (position === 'above') rowNode.insertBefore(newRow);
       else rowNode.insertAfter(newRow);
@@ -309,7 +348,9 @@ export default function TableContextMenuPlugin() {
       const tableNode = $getNodeByKey(menu.tableKey);
       getAllRows(tableNode).forEach((row) => {
         const cells = row.getChildren();
-        const cell = $createAttributedTableStructureNode('td', {});
+        const cell = row instanceof AttributedTableStructureNode
+          ? $createAttributedTableStructureNode('td', {})
+          : $createTableCellNode(0);
         cell.append($createParagraphNode());
         const ref = cells[menu.colIndex];
         if (ref) {
