@@ -36,6 +36,7 @@ import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
 import { AddressNode, PreformattedNode, DivNode, AttributedDivNode, AttributedTableStructureNode, RawHtmlNode } from './CustomFormatNodes'; // Custom format nodes
 import { FootnoteMarkerNode, FootnoteSectionNode, FootnotesPlugin } from './FootnotesPlugin'; // Footnotes support
+import TableContextMenuPlugin from './TableContextMenu'; // Right-click context menu for table cells
 
 // Hook to access the Lexical editor instance from within plugins
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -735,6 +736,7 @@ export default function LexicalEditor({
             <AutoFocusPlugin /> {/* Focus editor when page loads */}
             <TablePlugin hasCellMerge={false} hasCellBackgroundColor={false} /> {/* Table functionality */}
             <HorizontalRulePlugin /> {/* Horizontal rule (<hr>) support */}
+            <TableContextMenuPlugin /> {/* Right-click context menu for table cells */}
 
             {/* Our custom plugins */}
             <LoadContentPlugin
