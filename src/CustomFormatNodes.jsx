@@ -344,6 +344,9 @@ export class AttributedTableStructureNode extends ElementNode {
   }
 
   updateDOM(prevNode, dom) {
+    // Tag name change requires full DOM element recreation — you can't rename
+    // an existing element in place, so signal Lexical to call createDOM again.
+    if (prevNode.__tagName !== this.__tagName) return true;
     const prev = prevNode.__attributes;
     const next = this.__attributes;
     for (const name of Object.keys(prev)) {

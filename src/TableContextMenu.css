@@ -1,0 +1,149 @@
+/* ===== Lexical Table Context Menu ===== */
+
+/* ▾ hover trigger button — appears at top-right corner of hovered cell */
+.lctm-trigger {
+  position: fixed;
+  width: 20px;
+  height: 16px;
+  background: rgba(26, 115, 232, 0.82);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+
+.lctm-trigger:hover {
+  background: #1557b0;
+}
+
+.lexical-table-context-menu {
+  position: fixed;
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  min-width: 210px;
+  padding: 4px 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #333;
+  z-index: 10000;
+  user-select: none;
+}
+
+.lctm-item {
+  padding: 6px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.lctm-item:hover {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+}
+
+.lctm-item.lctm-danger:hover {
+  background-color: #fce8e6;
+  color: #d93025;
+}
+
+.lctm-sep {
+  height: 1px;
+  background: #e8e8e8;
+  margin: 3px 0;
+}
+
+.lctm-arrow {
+  font-size: 9px;
+  opacity: 0.45;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+/* ===== Submenus ===== */
+
+.lctm-has-sub {
+  position: relative;
+}
+
+.lctm-has-sub > .lctm-submenu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  min-width: 140px;
+  padding: 4px 0;
+  z-index: 10001;
+}
+
+.lctm-has-sub:hover > .lctm-submenu {
+  display: block;
+}
+
+/* ===== Table Width panel ===== */
+
+.lctm-submenu.lctm-width-panel {
+  padding: 10px 14px;
+  min-width: 190px;
+}
+
+.lctm-width-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lctm-width-input {
+  width: 58px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: right;
+  color: #333;
+  background: #fff;
+}
+
+.lctm-width-input:focus {
+  outline: 2px solid #1a73e8;
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.lctm-width-pct {
+  font-size: 13px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.lctm-width-apply {
+  padding: 4px 10px;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lctm-width-apply:hover {
+  background: #1557b0;
+}
