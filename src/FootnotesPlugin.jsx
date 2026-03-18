@@ -31,6 +31,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DecoratorNode,
   $applyNodeReplacement,
@@ -205,7 +206,7 @@ function FootnoteMarkerView({ order, footnoteId }) {
       href={`#footnote-${order}`}
       rel="footnote"
       onClick={(e) => e.preventDefault()}
-      title={`Footnote ${order}`}
+      title={`Endnote ${order}`}
       style={{
         color: '#0066cc',
         textDecoration: 'none',
@@ -379,11 +380,27 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
     ? headerEls[0] + title + headerEls[1]
     : `<h2>${title}</h2>`;
 
-  const handleEdit = (idx) => {
-    const fn = footnotes[idx];
-    const newText = window.prompt('Edit endnote text (HTML allowed):', fn.text);
-    if (newText === null) return; // user cancelled
+  // ── Edit modal state ───────────────────────────────────────────────────────
+  const [editIdx, setEditIdx]   = useState(null);
+  const [editText, setEditText] = useState('');
+  const editTextareaRef = useRef(null);
 
+  useEffect(() => {
+    if (editIdx !== null) {
+      setTimeout(() => editTextareaRef.current?.focus(), 50);
+    }
+  }, [editIdx]);
+
+  const openEdit = (idx) => {
+    setEditText(footnotes[idx].text);
+    setEditIdx(idx);
+  };
+
+  const handleEditSave = () => {
+    const idx = editIdx;
+    const newText = editText;
+    setEditIdx(null);
+    setEditText('');
     editor.update(() => {
       const root = $getRoot();
       root.getChildren().forEach(child => {
@@ -395,45 +412,149 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
     }, { tag: 'footnotes-reorder' });
   };
 
+  const handleEditCancel = () => {
+    setEditIdx(null);
+    setEditText('');
+  };
+
+  const handleEditKeyDown = (e) => {
+    if (e.key === 'Escape') handleEditCancel();
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleEditSave();
+  };
+
+  // ── Shared modal button styles (mirrors FootnoteDialog) ───────────────────
+  const cancelBtnStyle = {
+    padding: '8px 16px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    background: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+  };
+  const saveBtnStyle = {
+    padding: '8px 20px',
+    border: 'none',
+    borderRadius: '4px',
+    background: '#005fcc',
+    color: 'white',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontSize: '14px',
+  };
+
   return (
-    <section
-      className="footnotes"
-      style={{ background: '#eee', padding: '1px 15px 10px', marginTop: '12px' }}
-    >
-      {!disableHeader && (
-        <div dangerouslySetInnerHTML={{ __html: headerHtml }} />
-      )}
-      <ol style={{ paddingLeft: '20px', margin: '4px 0' }}>
-        {(footnotes || []).map((fn, idx) => (
-          <li key={fn.id} style={{ marginBottom: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-              <span style={{ flex: 1 }}>
-                <cite
-                  style={{ fontStyle: 'normal' }}
-                  dangerouslySetInnerHTML={{ __html: fn.text || '' }}
-                />
-              </span>
-              <button
-                type="button"
-                onClick={() => handleEdit(idx)}
-                style={{
-                  fontSize: '11px',
-                  padding: '1px 6px',
-                  border: '1px solid #aaa',
-                  borderRadius: '3px',
-                  background: 'white',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-                title={`Edit endnote ${idx + 1}`}
-              >
-                Edit
+    <>
+      {/* ── Edit modal ───────────────────────────────────────────────────── */}
+      {editIdx !== null && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit Endnote"
+          onKeyDown={handleEditKeyDown}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) handleEditCancel(); }}
+        >
+          <div style={{
+            background: 'white',
+            borderRadius: '6px',
+            padding: '24px',
+            minWidth: '400px',
+            maxWidth: '560px',
+            width: '90vw',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+          }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 600 }}>
+              Edit Endnote {editIdx + 1}
+            </h2>
+            <label
+              htmlFor="footnote-edit-text"
+              style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '14px' }}
+            >
+              Endnote text:
+            </label>
+            <textarea
+              id="footnote-edit-text"
+              ref={editTextareaRef}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              rows={4}
+              placeholder="Enter endnote text (HTML is supported)…"
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontFamily: 'inherit',
+                fontSize: '14px',
+                resize: 'vertical',
+              }}
+              aria-label="Endnote text"
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+              <button type="button" onClick={handleEditCancel} style={cancelBtnStyle}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleEditSave} style={saveBtnStyle}>
+                Save
               </button>
             </div>
-          </li>
-        ))}
-      </ol>
-    </section>
+            <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#888' }}>
+              Ctrl+Enter to save · Esc to cancel
+            </p>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Footnotes section ────────────────────────────────────────────── */}
+      <section
+        className="footnotes"
+        style={{ background: '#eee', padding: '1px 15px 10px', marginTop: '12px' }}
+      >
+        {!disableHeader && (
+          <div dangerouslySetInnerHTML={{ __html: headerHtml }} />
+        )}
+        <ol style={{ paddingLeft: '20px', margin: '4px 0' }}>
+          {(footnotes || []).map((fn, idx) => (
+            <li key={fn.id} style={{ marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                <span style={{ flex: 1 }}>
+                  <cite
+                    style={{ fontStyle: 'normal' }}
+                    dangerouslySetInnerHTML={{ __html: fn.text || '' }}
+                  />
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openEdit(idx)}
+                  style={{
+                    fontSize: '11px',
+                    padding: '1px 6px',
+                    border: '1px solid #aaa',
+                    borderRadius: '3px',
+                    background: 'white',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  title={`Edit endnote ${idx + 1}`}
+                >
+                  Edit
+                </button>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </>
   );
 }
 
