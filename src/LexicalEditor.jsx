@@ -423,14 +423,35 @@ export function cleanExportedHtml(html) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
 
-  // 1. Remove class attributes that only contain lexical- prefixed classes
+  // 1. Remove class attributes that only contain lexical- prefixed classes.
+  //    Exception: table elements keep their lexical-* classes so that
+  //    LexicalTable.css styling survives the save → reload cycle.
+  //    When reloaded, AttributedTableStructureNode preserves these classes in
+  //    __attributes and re-applies them to the DOM, so the CSS keeps working.
+  const TABLE_TAGS = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th']);
   doc.querySelectorAll('[class]').forEach(el => {
+    if (TABLE_TAGS.has(el.tagName.toLowerCase())) return;
     const remaining = Array.from(el.classList).filter(c => !c.startsWith('lexical-'));
     if (remaining.length === 0) {
       el.removeAttribute('class');
     } else {
       el.className = remaining.join(' ');
     }
+  });
+
+  // 1b. Strip auto-generated inline styles from toolbar-created table cells
+  //     (identifiable by their lexical-table-cell / lexical-table-cell-header class).
+  //     TableCellNode.exportDOM() adds border, width, vertical-align, text-align,
+  //     and background-color inline styles that duplicate — and override — what
+  //     the CSS class already provides.  Removing them lets the CSS class apply
+  //     cleanly after reload, giving a consistent appearance to the user.
+  doc.querySelectorAll('td.lexical-table-cell, th.lexical-table-cell-header').forEach(cell => {
+    cell.style.removeProperty('border');
+    cell.style.removeProperty('width');
+    cell.style.removeProperty('vertical-align');
+    cell.style.removeProperty('text-align');
+    cell.style.removeProperty('background-color');
+    if (cell.style.length === 0) cell.removeAttribute('style');
   });
 
   // 2. Remove dir="ltr" attributes (browser default, not needed in saved HTML)
