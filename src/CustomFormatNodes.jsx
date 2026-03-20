@@ -23,22 +23,44 @@ export class AddressNode extends ElementNode {
   }
 
   static clone(node) {
-    return new AddressNode(node.__key);
+    return new AddressNode(node.__attributes, node.__key);
+  }
+
+  constructor(attributes, key) {
+    super(key);
+    this.__attributes = attributes ? { ...attributes } : {};
   }
 
   createDOM() {
     const el = document.createElement('address');
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
     return el;
   }
 
-  updateDOM() {
+  updateDOM(prevNode, dom) {
+    const prev = prevNode.__attributes;
+    const next = this.__attributes;
+    for (const name of Object.keys(prev)) {
+      if (!(name in next)) dom.removeAttribute(name);
+    }
+    for (const [name, value] of Object.entries(next)) {
+      if (prev[name] !== value) dom.setAttribute(name, value);
+    }
     return false;
   }
 
   static importDOM() {
     return {
       address: () => ({
-        conversion: convertAddressElement,
+        conversion: (element) => {
+          const attributes = {};
+          for (const attr of element.attributes) {
+            attributes[attr.name] = attr.value;
+          }
+          return { node: $createAddressNode(attributes) };
+        },
         priority: 0,
       }),
     };
@@ -46,11 +68,14 @@ export class AddressNode extends ElementNode {
 
   exportDOM(editor) {
     const el = document.createElement('address');
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
     return { element: el };
   }
 
   static importJSON(serializedNode) {
-    const node = $createAddressNode();
+    const node = $createAddressNode(serializedNode.attributes || {});
     node.setDirection(serializedNode.direction);
     return node;
   }
@@ -59,17 +84,14 @@ export class AddressNode extends ElementNode {
     return {
       ...super.exportJSON(),
       type: 'address',
+      attributes: { ...this.__attributes },
       version: 1,
     };
   }
 }
 
-function convertAddressElement() {
-  return { node: $createAddressNode() };
-}
-
-export function $createAddressNode() {
-  return $applyNodeReplacement(new AddressNode());
+export function $createAddressNode(attributes) {
+  return $applyNodeReplacement(new AddressNode(attributes || {}));
 }
 
 export function $isAddressNode(node) {
@@ -86,22 +108,44 @@ export class PreformattedNode extends ElementNode {
   }
 
   static clone(node) {
-    return new PreformattedNode(node.__key);
+    return new PreformattedNode(node.__attributes, node.__key);
+  }
+
+  constructor(attributes, key) {
+    super(key);
+    this.__attributes = attributes ? { ...attributes } : {};
   }
 
   createDOM() {
     const el = document.createElement('pre');
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
     return el;
   }
 
-  updateDOM() {
+  updateDOM(prevNode, dom) {
+    const prev = prevNode.__attributes;
+    const next = this.__attributes;
+    for (const name of Object.keys(prev)) {
+      if (!(name in next)) dom.removeAttribute(name);
+    }
+    for (const [name, value] of Object.entries(next)) {
+      if (prev[name] !== value) dom.setAttribute(name, value);
+    }
     return false;
   }
 
   static importDOM() {
     return {
       pre: () => ({
-        conversion: convertPreElement,
+        conversion: (element) => {
+          const attributes = {};
+          for (const attr of element.attributes) {
+            attributes[attr.name] = attr.value;
+          }
+          return { node: $createPreformattedNode(attributes) };
+        },
         priority: 0,
       }),
     };
@@ -109,11 +153,14 @@ export class PreformattedNode extends ElementNode {
 
   exportDOM(editor) {
     const el = document.createElement('pre');
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
     return { element: el };
   }
 
   static importJSON(serializedNode) {
-    const node = $createPreformattedNode();
+    const node = $createPreformattedNode(serializedNode.attributes || {});
     node.setDirection(serializedNode.direction);
     return node;
   }
@@ -122,17 +169,14 @@ export class PreformattedNode extends ElementNode {
     return {
       ...super.exportJSON(),
       type: 'preformatted',
+      attributes: { ...this.__attributes },
       version: 1,
     };
   }
 }
 
-function convertPreElement() {
-  return { node: $createPreformattedNode() };
-}
-
-export function $createPreformattedNode() {
-  return $applyNodeReplacement(new PreformattedNode());
+export function $createPreformattedNode(attributes) {
+  return $applyNodeReplacement(new PreformattedNode(attributes || {}));
 }
 
 export function $isPreformattedNode(node) {
@@ -299,6 +343,122 @@ export function $createAttributedDivNode(attributes) {
 
 export function $isAttributedDivNode(node) {
   return node instanceof AttributedDivNode;
+}
+
+// =====================================================================
+// AttributedHeadingNode — an EDITABLE heading that preserves all original
+// HTML attributes (style, class, id, data-*, etc.) through round-trips.
+//
+// Extends ElementNode (not Lexical's built-in HeadingNode) so it is fully
+// independent and doesn't inherit HeadingNode's attribute-stripping behavior.
+//
+// importDOM priority 2: beats HeadingNode (priority 0) for any h1-h6 element
+// that arrives from DOM import (initial load or source-view apply).
+//
+// Toolbar-created headings still use $createHeadingNode() → HeadingNode.
+// When those headings are saved and reloaded from the hidden field they come
+// back through importDOM and become AttributedHeadingNode instances — which
+// is fine because __attributes will simply be empty.
+// =====================================================================
+
+const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+
+export class AttributedHeadingNode extends ElementNode {
+  static getType() {
+    return 'attributed-heading';
+  }
+
+  static clone(node) {
+    return new AttributedHeadingNode(node.__tag, node.__attributes, node.__key);
+  }
+
+  constructor(tag, attributes, key) {
+    super(key);
+    this.__tag = tag || 'h1';
+    this.__attributes = attributes ? { ...attributes } : {};
+  }
+
+  createDOM(config) {
+    const el = document.createElement(this.__tag);
+    // Apply preserved attributes first (style, class, id, data-*, etc.)
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
+    // Add the theme class on top so the heading is styled inside the editor.
+    // cleanExportedHtml() removes lexical-* classes on export so the original
+    // class attribute is not polluted after a save → reload cycle.
+    const themeClass = config.theme?.heading?.[this.__tag];
+    if (themeClass) el.classList.add(themeClass);
+    return el;
+  }
+
+  updateDOM(prevNode, dom) {
+    // A tag-name change requires Lexical to recreate the DOM element entirely.
+    if (prevNode.__tag !== this.__tag) return true;
+    const prev = prevNode.__attributes;
+    const next = this.__attributes;
+    for (const name of Object.keys(prev)) {
+      if (!(name in next)) dom.removeAttribute(name);
+    }
+    for (const [name, value] of Object.entries(next)) {
+      if (prev[name] !== value) dom.setAttribute(name, value);
+    }
+    return false;
+  }
+
+  static importDOM() {
+    const conversions = {};
+    for (const tag of HEADING_TAGS) {
+      conversions[tag] = () => ({
+        conversion: (element) => {
+          const attributes = {};
+          for (const attr of element.attributes) {
+            attributes[attr.name] = attr.value;
+          }
+          return { node: $createAttributedHeadingNode(tag, attributes) };
+        },
+        priority: 2,
+      });
+    }
+    return conversions;
+  }
+
+  exportDOM(editor) {
+    const el = document.createElement(this.__tag);
+    for (const [name, value] of Object.entries(this.__attributes)) {
+      el.setAttribute(name, value);
+    }
+    return { element: el };
+  }
+
+  static importJSON(serializedNode) {
+    const node = $createAttributedHeadingNode(
+      serializedNode.tag || 'h1',
+      serializedNode.attributes || {}
+    );
+    node.setFormat(serializedNode.format);
+    node.setIndent(serializedNode.indent);
+    node.setDirection(serializedNode.direction);
+    return node;
+  }
+
+  exportJSON() {
+    return {
+      ...super.exportJSON(),
+      type: 'attributed-heading',
+      tag: this.__tag,
+      attributes: { ...this.__attributes },
+      version: 1,
+    };
+  }
+}
+
+export function $createAttributedHeadingNode(tag, attributes) {
+  return $applyNodeReplacement(new AttributedHeadingNode(tag, attributes));
+}
+
+export function $isAttributedHeadingNode(node) {
+  return node instanceof AttributedHeadingNode;
 }
 
 // =====================================================================

@@ -34,7 +34,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'; // Heading and quot
 import { ListItemNode, ListNode } from '@lexical/list'; // List nodes
 import { LinkNode } from '@lexical/link'; // Hyperlink nodes
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table'; // Table nodes
-import { AddressNode, PreformattedNode, DivNode, AttributedDivNode, AttributedTableStructureNode, RawHtmlNode } from './CustomFormatNodes'; // Custom format nodes
+import { AddressNode, PreformattedNode, DivNode, AttributedDivNode, AttributedTableStructureNode, AttributedHeadingNode, RawHtmlNode } from './CustomFormatNodes'; // Custom format nodes
 import { FootnoteMarkerNode, FootnoteSectionNode, FootnotesPlugin } from './FootnotesPlugin'; // Footnotes support
 import TableContextMenuPlugin from './TableContextMenu'; // Right-click context menu for table cells
 
@@ -484,6 +484,24 @@ export function cleanExportedHtml(html) {
     }
   });
 
+  // 4. Strip white-space: pre-wrap from inline text-formatting elements.
+  //    Lexical adds this artifact to <strong>, <em>, <u>, <s>, <code>,
+  //    <sub>, and <sup> for the same whitespace-preservation reason it adds
+  //    it to spans.  Unlike spans, we do NOT unwrap these elements because
+  //    they carry semantic meaning (bold, italic, etc.).  We only remove
+  //    the artifact style; if the style attribute becomes empty afterward
+  //    we remove it entirely so the saved HTML stays clean.
+  doc.querySelectorAll('strong[style],em[style],u[style],s[style],code[style],sub[style],sup[style],b[style],i[style]').forEach(el => {
+    const cleanStyle = (el.getAttribute('style') || '')
+      .replace(/white-space:\s*pre-wrap;?\s*/g, '')
+      .trim();
+    if (!cleanStyle) {
+      el.removeAttribute('style');
+    } else {
+      el.setAttribute('style', cleanStyle);
+    }
+  });
+
   return doc.body.innerHTML;
 }
 
@@ -613,7 +631,8 @@ export default function LexicalEditor({
     // nodes: Array of custom node types the editor can use
     // These define what types of content the editor supports
     nodes: [
-      HeadingNode, // Enables H1-H6 headings
+      HeadingNode, // Enables H1-H6 headings (toolbar-created headings use this)
+      AttributedHeadingNode, // Preserves style/class/id attrs on h1-h6 from HTML import (priority 2)
       ListNode, // Enables lists (ul/ol)
       ListItemNode, // Enables list items (li)
       QuoteNode, // Enables blockquotes
