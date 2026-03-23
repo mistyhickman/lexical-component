@@ -362,6 +362,28 @@ export function $isAttributedDivNode(node) {
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
+// Default heading sizes used for the live editor display.
+// These are applied as inline !important styles in createDOM/updateDOM so they
+// beat any host-application CSS reset regardless of specificity.
+// They do NOT appear in the saved/exported HTML because exportDOM() creates a
+// fresh element from __attributes only (no theme class, no inline overrides).
+const _HEADING_SIZES = {
+  h1: '2em', h2: '1.5em', h3: '1.17em', h4: '1em', h5: '0.83em', h6: '0.67em',
+};
+
+// Apply inline !important visual overrides for heading font-size and font-weight.
+// Skipped for headings that already carry an explicit font-size/font-weight in
+// their preserved style attribute (honouring the author's intent from the DB).
+function _applyHeadingDisplayStyles(el, tag, preservedStyle) {
+  const style = preservedStyle || '';
+  if (!/font-size\s*:/i.test(style) && _HEADING_SIZES[tag]) {
+    el.style.setProperty('font-size', _HEADING_SIZES[tag], 'important');
+  }
+  if (!/font-weight\s*:/i.test(style)) {
+    el.style.setProperty('font-weight', 'bold', 'important');
+  }
+}
+
 export class AttributedHeadingNode extends ElementNode {
   static getType() {
     return 'attributed-heading';
@@ -383,11 +405,16 @@ export class AttributedHeadingNode extends ElementNode {
     for (const [name, value] of Object.entries(this.__attributes)) {
       el.setAttribute(name, value);
     }
-    // Add the theme class on top so the heading is styled inside the editor.
+    // Add the theme class so CSS-based heading rules also apply where possible.
     // cleanExportedHtml() removes lexical-* classes on export so the original
     // class attribute is not polluted after a save → reload cycle.
     const themeClass = config.theme?.heading?.[this.__tag];
     if (themeClass) el.classList.add(themeClass);
+    // Apply inline !important heading display styles so the heading looks correct
+    // inside the editor regardless of the host application's CSS reset rules.
+    // These inline styles are editor-only: exportDOM() creates a fresh element
+    // from __attributes and never copies them to the saved HTML.
+    _applyHeadingDisplayStyles(el, this.__tag, this.__attributes.style);
     return el;
   }
 
@@ -402,6 +429,10 @@ export class AttributedHeadingNode extends ElementNode {
     for (const [name, value] of Object.entries(next)) {
       if (prev[name] !== value) dom.setAttribute(name, value);
     }
+    // Re-apply inline heading display styles after any attribute update because
+    // setAttribute('style', ...) replaces the entire style attribute and would
+    // strip the overrides added by createDOM / a previous updateDOM call.
+    _applyHeadingDisplayStyles(dom, this.__tag, next.style);
     return false;
   }
 
