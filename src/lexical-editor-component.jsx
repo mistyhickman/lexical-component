@@ -273,6 +273,24 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
         .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
 
+        /* ===== HEADING CHILD ELEMENT ISOLATION =====
+           base.css and similar host stylesheets often reset font-size on ALL
+           elements (e.g. "* { font-size: 1rem }" or "span { font-size: 12px }").
+           Lexical wraps every text node in <span data-lexical-text="true">, so
+           without this rule that span inherits the host reset instead of the
+           heading's size.  Force every descendant that lacks an explicit inline
+           font-size to inherit from its heading ancestor.
+           :not([style*="font-size"]) preserves user-applied sizes set via the
+           font-size toolbar dropdown. */
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h1 *:not([style*="font-size"]),
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h2 *:not([style*="font-size"]),
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h3 *:not([style*="font-size"]),
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h4 *:not([style*="font-size"]),
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h5 *:not([style*="font-size"]),
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h6 *:not([style*="font-size"]) {
+          font-size: inherit !important;
+        }
+
         /* ===== TABLE STRUCTURE ISOLATION =====
            Lock the display roles for every table element so that application
            CSS (e.g. "td { display: block }" or "tr { float: left }") cannot
