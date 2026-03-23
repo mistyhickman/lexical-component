@@ -124,15 +124,17 @@ class LexicalEditorElement extends HTMLElement {
 
     // ===== ADD DEFAULT CSS STYLES =====
 
-    // Check if styles have already been added to the page
-    // We only want to add them once, even if there are multiple editors
-    if (!document.getElementById('lexical-editor-styles')) {
-      // Create a new <style> element (like <style> tags in HTML)
-      const style = document.createElement('style');
-      // Give it an ID so we can check if it exists later
+    // Ensure the style element exists and always has the latest CSS.
+    // We update (not skip) on every mount so a rebuilt IIFE takes effect without
+    // requiring a hard browser refresh when the page uses the Lexical component
+    // inside a single-page application that doesn't do a full page reload.
+    let style = document.getElementById('lexical-editor-styles');
+    if (!style) {
+      style = document.createElement('style');
       style.id = 'lexical-editor-styles';
-      // Set the CSS content using a template literal (backticks allow multi-line strings)
-      style.textContent = `
+      document.head.appendChild(style);
+    }
+    style.textContent = `
         /* Main container for the entire editor */
         .lexical-editor-container {
           font-family: system-ui, -apple-system, sans-serif;
@@ -454,9 +456,6 @@ class LexicalEditorElement extends HTMLElement {
           vertical-align: super; /* Above the baseline (like X²) */
         }
       `;
-      // Add the <style> element to the document's <head>
-      document.head.appendChild(style);
-    }
   }
 
   /**
