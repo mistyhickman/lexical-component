@@ -56,13 +56,12 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 
 // Rich text node creators
 import {
-  $createHeadingNode, // Create heading nodes (H1-H6)
   $createQuoteNode, // Create blockquote nodes
   HeadingTagType
 } from '@lexical/rich-text';
 
-// Custom format nodes (address, pre, div)
-import { $createAddressNode, $createPreformattedNode, $createDivNode } from './CustomFormatNodes';
+// Custom format nodes (address, pre, div, attributed heading)
+import { $createAddressNode, $createPreformattedNode, $createDivNode, $createAttributedHeadingNode } from './CustomFormatNodes';
 
 // More selection utilities
 import { $setBlocksType, $patchStyleText } from '@lexical/selection';
@@ -1262,7 +1261,10 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
           $setBlocksType(selection, () => $createAddressNode());
         } else if (formatType.startsWith('h')) {
           // Headings → <h1> through <h6>
-          $setBlocksType(selection, () => $createHeadingNode(formatType));
+          // Use AttributedHeadingNode so the theme class is always applied
+          // in createDOM() and the node type is consistent with headings
+          // loaded from the database.
+          $setBlocksType(selection, () => $createAttributedHeadingNode(formatType, {}));
         }
       }
     });

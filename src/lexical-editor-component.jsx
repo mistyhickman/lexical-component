@@ -221,16 +221,16 @@ class LexicalEditorElement extends HTMLElement {
            would be overridden by !important and silently disappear. Application
            CSS borders on headings/paragraphs are far less common than legitimate
            inline borders in stored content, so we leave border alone. */
-        .lexical-content-editable h1,
-        .lexical-content-editable h2,
-        .lexical-content-editable h3,
-        .lexical-content-editable h4,
-        .lexical-content-editable h5,
-        .lexical-content-editable h6,
-        .lexical-content-editable p,
-        .lexical-content-editable pre,
-        .lexical-content-editable blockquote,
-        .lexical-content-editable li {
+        .lexical-editor-wrapper .lexical-content-editable h1,
+        .lexical-editor-wrapper .lexical-content-editable h2,
+        .lexical-editor-wrapper .lexical-content-editable h3,
+        .lexical-editor-wrapper .lexical-content-editable h4,
+        .lexical-editor-wrapper .lexical-content-editable h5,
+        .lexical-editor-wrapper .lexical-content-editable h6,
+        .lexical-editor-wrapper .lexical-content-editable p,
+        .lexical-editor-wrapper .lexical-content-editable pre,
+        .lexical-editor-wrapper .lexical-content-editable blockquote,
+        .lexical-editor-wrapper .lexical-content-editable li {
           color: #000000 !important;
           background-color: transparent !important;
           background-image: none !important;
@@ -244,13 +244,16 @@ class LexicalEditorElement extends HTMLElement {
         }
 
         /* Headings: also lock size, weight, style, margin, and padding so
-           application rules cannot push them into unexpected dimensions. */
-        .lexical-content-editable h1 { font-size: 2em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-content-editable h2 { font-size: 1.5em !important;  font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-content-editable h3 { font-size: 1.17em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-content-editable h4 { font-size: 1em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+           application rules cannot push them into unexpected dimensions.
+           The .lexical-editor-wrapper prefix raises specificity to (0,2,1)
+           so these rules beat host-application class-based rules, even those
+           that also use !important at (0,1,1) specificity. */
+        .lexical-editor-wrapper .lexical-content-editable h1 { font-size: 2em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-wrapper .lexical-content-editable h2 { font-size: 1.5em !important;  font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-wrapper .lexical-content-editable h3 { font-size: 1.17em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-wrapper .lexical-content-editable h4 { font-size: 1em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-wrapper .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-wrapper .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
 
         /* ===== TABLE STRUCTURE ISOLATION =====
            Lock the display roles for every table element so that application
