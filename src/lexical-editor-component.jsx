@@ -181,36 +181,51 @@ class LexicalEditorElement extends HTMLElement {
           margin: 0 0 10px 0; /* Bottom margin only */
         }
 
-        /* Heading styles - Different sizes for different heading levels */
+        /* Heading styles - Different sizes for different heading levels.
+           !important ensures these class-based rules beat host-application
+           element-level resets (e.g. h1 { font-size: 1rem }) that would
+           otherwise flatten heading sizes inside the editor. */
         .lexical-h1 {
-          font-size: 2em; /* 2x normal size */
-          font-weight: bold;
-          margin: 0 0 10px 0;
+          font-size: 2em !important; /* 2x normal size */
+          font-weight: bold !important;
+          font-style: normal !important;
+          margin: 0 0 10px 0 !important;
+          padding: 0 !important;
         }
         .lexical-h2 {
-          font-size: 1.5em; /* 1.5x normal size */
-          font-weight: bold;
-          margin: 0 0 10px 0;
+          font-size: 1.5em !important; /* 1.5x normal size */
+          font-weight: bold !important;
+          font-style: normal !important;
+          margin: 0 0 10px 0 !important;
+          padding: 0 !important;
         }
         .lexical-h3 {
-          font-size: 1.17em; /* Slightly larger than normal */
-          font-weight: bold;
-          margin: 0 0 10px 0;
+          font-size: 1.17em !important; /* Slightly larger than normal */
+          font-weight: bold !important;
+          font-style: normal !important;
+          margin: 0 0 10px 0 !important;
+          padding: 0 !important;
         }
         .lexical-h4 {
-          font-size: 1em;
-          font-weight: bold;
-          margin: 0 0 10px 0;
+          font-size: 1em !important;
+          font-weight: bold !important;
+          font-style: normal !important;
+          margin: 0 0 10px 0 !important;
+          padding: 0 !important;
         }
         .lexical-h5 {
-          font-size: 0.83em;
-          font-weight: bold;
-          margin: 0 0 10px 0;
+          font-size: 0.83em !important;
+          font-weight: bold !important;
+          font-style: normal !important;
+          margin: 0 0 10px 0 !important;
+          padding: 0 !important;
         }
         .lexical-h6 {
-          font-size: 0.67em;
-          font-weight: bold;
-          margin: 0 0 10px 0;
+          font-size: 0.67em !important;
+          font-weight: bold !important;
+          font-style: normal !important;
+          margin: 0 0 10px 0 !important;
+          padding: 0 !important;
         }
 
         /* ===== STYLE ISOLATION =====
@@ -245,15 +260,16 @@ class LexicalEditorElement extends HTMLElement {
 
         /* Headings: also lock size, weight, style, margin, and padding so
            application rules cannot push them into unexpected dimensions.
-           The .lexical-editor-wrapper prefix raises specificity to (0,2,1)
-           so these rules beat host-application class-based rules, even those
-           that also use !important at (0,1,1) specificity. */
-        .lexical-editor-wrapper .lexical-content-editable h1 { font-size: 2em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-editor-wrapper .lexical-content-editable h2 { font-size: 1.5em !important;  font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-editor-wrapper .lexical-content-editable h3 { font-size: 1.17em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-editor-wrapper .lexical-content-editable h4 { font-size: 1em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-editor-wrapper .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
-        .lexical-editor-wrapper .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+           Three-class prefix (.lexical-editor-container .lexical-editor-wrapper
+           .lexical-content-editable) raises specificity to (0,3,1) so these
+           rules beat virtually any host-application rule — even two-class
+           selectors with !important at (0,2,1) specificity. */
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h1 { font-size: 2em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h2 { font-size: 1.5em !important;  font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h3 { font-size: 1.17em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h4 { font-size: 1em !important;    font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 0 0 10px 0 !important; padding: 0 !important; }
 
         /* ===== TABLE STRUCTURE ISOLATION =====
            Lock the display roles for every table element so that application
