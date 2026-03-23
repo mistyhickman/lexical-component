@@ -355,10 +355,9 @@ export function $isAttributedDivNode(node) {
 // importDOM priority 2: beats HeadingNode (priority 0) for any h1-h6 element
 // that arrives from DOM import (initial load or source-view apply).
 //
-// Toolbar-created headings still use $createHeadingNode() → HeadingNode.
-// When those headings are saved and reloaded from the hidden field they come
-// back through importDOM and become AttributedHeadingNode instances — which
-// is fine because __attributes will simply be empty.
+// Toolbar-created headings use $createAttributedHeadingNode() directly with
+// empty attributes {}.  When saved to the hidden field and reloaded they come
+// back through importDOM at priority 2 — also as AttributedHeadingNode instances.
 // =====================================================================
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
