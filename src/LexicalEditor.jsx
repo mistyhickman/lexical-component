@@ -774,7 +774,7 @@ export default function LexicalEditor({
             <CheckListPlugin /> {/* Clickable check lists */}
             <TabIndentationPlugin /> {/* Tab key to indent */}
             <AutoFocusPlugin /> {/* Focus editor when page loads */}
-            <TablePlugin hasCellMerge={false} hasCellBackgroundColor={false} /> {/* Table functionality */}
+            <TablePlugin hasCellMerge={true} hasCellBackgroundColor={false} /> {/* Table functionality */}
             <HorizontalRulePlugin /> {/* Horizontal rule (<hr>) support */}
             <TableContextMenuPlugin /> {/* Right-click context menu for table cells */}
 
