@@ -384,6 +384,7 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
   const [editIdx, setEditIdx]   = useState(null);
   const [editText, setEditText] = useState('');
   const editTextareaRef = useRef(null);
+  const editPrevFocusRef = useRef(null); // tracks focus before modal opens
 
   useEffect(() => {
     if (editIdx !== null) {
@@ -392,6 +393,7 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
   }, [editIdx]);
 
   const openEdit = (idx) => {
+    editPrevFocusRef.current = document.activeElement;
     setEditText(footnotes[idx].text);
     setEditIdx(idx);
   };
@@ -401,6 +403,7 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
     const newText = editText;
     setEditIdx(null);
     setEditText('');
+    setTimeout(() => editPrevFocusRef.current?.focus(), 0);
     editor.update(() => {
       const root = $getRoot();
       root.getChildren().forEach(child => {
@@ -415,11 +418,25 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
   const handleEditCancel = () => {
     setEditIdx(null);
     setEditText('');
+    setTimeout(() => editPrevFocusRef.current?.focus(), 0);
   };
 
   const handleEditKeyDown = (e) => {
-    if (e.key === 'Escape') handleEditCancel();
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleEditSave();
+    if (e.key === 'Escape') { handleEditCancel(); return; }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { handleEditSave(); return; }
+    // Focus trap: keep Tab key cycling within the dialog
+    if (e.key === 'Tab') {
+      const focusable = Array.from(
+        e.currentTarget.querySelectorAll('button, textarea, input, [tabindex]:not([tabindex="-1"])')
+      ).filter(el => !el.disabled);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      }
+    }
   };
 
   // ── Shared modal button styles (mirrors FootnoteDialog) ───────────────────
@@ -546,6 +563,7 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
                     flexShrink: 0,
                   }}
                   title={`Edit endnote ${idx + 1}`}
+                  aria-label={`Edit endnote ${idx + 1}`}
                 >
                   Edit
                 </button>
@@ -681,6 +699,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
   const [selectedId, setSelectedId] = useState('');
   const [existingFootnotes, setExistingFootnotes] = useState([]);
   const textareaRef = useRef(null);
+  const dialogPrevFocusRef = useRef(null); // tracks focus before dialog opens
 
   // Populate existing footnotes and reset form whenever dialog opens
   useEffect(() => {
@@ -689,6 +708,9 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
       setSelectedId('');
       return;
     }
+
+    // Store element that had focus before opening so we can restore it on close
+    dialogPrevFocusRef.current = document.activeElement;
 
     editor.getEditorState().read(() => {
       const root = $getRoot();
@@ -749,12 +771,31 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
       }
     });
 
+    handleClose();
+  };
+
+  // Restore focus to the element that opened this dialog, then call onClose
+  const handleClose = () => {
+    setTimeout(() => dialogPrevFocusRef.current?.focus(), 0);
     onClose();
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Escape') onClose();
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleInsert();
+    if (e.key === 'Escape') { handleClose(); return; }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { handleInsert(); return; }
+    // Focus trap: keep Tab key cycling within the dialog
+    if (e.key === 'Tab') {
+      const focusable = Array.from(
+        e.currentTarget.querySelectorAll('button, textarea, input, [tabindex]:not([tabindex="-1"])')
+      ).filter(el => !el.disabled);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      }
+    }
   };
 
   if (!isOpen) return null;
@@ -774,7 +815,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
         alignItems: 'center',
         justifyContent: 'center',
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <div style={{
         background: 'white',
@@ -862,7 +903,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
         }}>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               padding: '8px 16px',
               border: '1px solid #ccc',

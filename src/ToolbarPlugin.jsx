@@ -165,6 +165,8 @@ const ALIGN_OPTIONS = [
 function AlignDropdown({ tools, onAlignLeft, onAlignCenter, onAlignRight, onAlignJustify, buttonStyle }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const triggerBtnRef = useRef(null);
+  const panelRef = useRef(null);
 
   const handlers = {
     alignleft:   onAlignLeft,
@@ -185,17 +187,37 @@ function AlignDropdown({ tools, onAlignLeft, onAlignCenter, onAlignRight, onAlig
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [open]);
 
+  // Focus first menuitem when dropdown opens
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => {
+        panelRef.current?.querySelector('[role="menuitem"]')?.focus();
+      });
+    }
+  }, [open]);
+
+  const handlePanelKeyDown = (e) => {
+    const items = Array.from(panelRef.current?.querySelectorAll('[role="menuitem"]') || []);
+    const idx = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(idx - 1 + items.length) % items.length]?.focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0]?.focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus(); }
+    else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); setOpen(false); triggerBtnRef.current?.focus(); }
+  };
+
   if (visibleOptions.length === 0) return null;
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <button
+        ref={triggerBtnRef}
         type="button"
         onClick={() => setOpen(o => !o)}
         style={{ ...buttonStyle, gap: '4px' }}
         title="Text Alignment"
         aria-label="Text Alignment"
-        aria-haspopup="listbox"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
         {/* Show the left-align icon as the default visual cue */}
@@ -204,13 +226,15 @@ function AlignDropdown({ tools, onAlignLeft, onAlignCenter, onAlignRight, onAlig
           <rect x="0" y="4" width="9"  height="2" rx="1"/>
           <rect x="0" y="9" width="12" height="2" rx="1"/>
         </svg>
-        <span style={{ fontSize: '10px', lineHeight: 1 }}>▾</span>
+        <span style={{ fontSize: '10px', lineHeight: 1 }} aria-hidden="true">▾</span>
       </button>
 
       {open && (
         <div
-          role="listbox"
+          ref={panelRef}
+          role="menu"
           aria-label="Text Alignment"
+          onKeyDown={handlePanelKeyDown}
           style={{
             position: 'absolute',
             top: 'calc(100% + 2px)',
@@ -227,7 +251,7 @@ function AlignDropdown({ tools, onAlignLeft, onAlignCenter, onAlignRight, onAlig
             <button
               key={opt.key}
               type="button"
-              role="option"
+              role="menuitem"
               onClick={() => { handlers[opt.key](); setOpen(false); }}
               style={{
                 display: 'flex',
@@ -310,6 +334,8 @@ const LIST_OPTIONS = [
 function ListDropdown({ tools, onBulletList, onNumberList, onCheckList, buttonStyle }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const triggerBtnRef = useRef(null);
+  const panelRef = useRef(null);
 
   const handlers = {
     bullist:   onBulletList,
@@ -328,17 +354,37 @@ function ListDropdown({ tools, onBulletList, onNumberList, onCheckList, buttonSt
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [open]);
 
+  // Focus first menuitem when dropdown opens
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => {
+        panelRef.current?.querySelector('[role="menuitem"]')?.focus();
+      });
+    }
+  }, [open]);
+
+  const handlePanelKeyDown = (e) => {
+    const items = Array.from(panelRef.current?.querySelectorAll('[role="menuitem"]') || []);
+    const idx = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(idx - 1 + items.length) % items.length]?.focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0]?.focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus(); }
+    else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); setOpen(false); triggerBtnRef.current?.focus(); }
+  };
+
   if (visibleOptions.length === 0) return null;
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <button
+        ref={triggerBtnRef}
         type="button"
         onClick={() => setOpen(o => !o)}
         style={{ ...buttonStyle, gap: '4px' }}
         title="List Type"
         aria-label="List Type"
-        aria-haspopup="listbox"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
         {/* Bullet-list icon as the default visual cue */}
@@ -350,13 +396,15 @@ function ListDropdown({ tools, onBulletList, onNumberList, onCheckList, buttonSt
           <circle cx="2" cy="9.5" r="1.5"/>
           <rect x="5" y="8"  width="9"  height="2" rx="1"/>
         </svg>
-        <span style={{ fontSize: '10px', lineHeight: 1 }}>▾</span>
+        <span style={{ fontSize: '10px', lineHeight: 1 }} aria-hidden="true">▾</span>
       </button>
 
       {open && (
         <div
-          role="listbox"
+          ref={panelRef}
+          role="menu"
           aria-label="List Type"
+          onKeyDown={handlePanelKeyDown}
           style={{
             position: 'absolute',
             top: 'calc(100% + 2px)',
@@ -373,7 +421,7 @@ function ListDropdown({ tools, onBulletList, onNumberList, onCheckList, buttonSt
             <button
               key={opt.key}
               type="button"
-              role="option"
+              role="menuitem"
               onClick={() => { handlers[opt.key](); setOpen(false); }}
               style={{
                 display: 'flex',
@@ -460,6 +508,8 @@ const CLIPBOARD_OPTIONS = [
 function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const triggerBtnRef = useRef(null);
+  const panelRef = useRef(null);
 
   const handlers = {
     cut:       onCut,
@@ -480,28 +530,50 @@ function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [open]);
 
+  // Focus first menuitem when dropdown opens
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => {
+        panelRef.current?.querySelector('[role="menuitem"]')?.focus();
+      });
+    }
+  }, [open]);
+
+  const handlePanelKeyDown = (e) => {
+    const items = Array.from(panelRef.current?.querySelectorAll('[role="menuitem"]') || []);
+    const idx = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(idx - 1 + items.length) % items.length]?.focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0]?.focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus(); }
+    else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); setOpen(false); triggerBtnRef.current?.focus(); }
+  };
+
   if (visibleOptions.length === 0) return null;
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <button
+        ref={triggerBtnRef}
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
         style={{ ...buttonStyle, gap: '4px' }}
         title="Clipboard"
         aria-label="Clipboard"
-        aria-haspopup="listbox"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
         {defaultOption.icon}
-        <span style={{ fontSize: '10px', lineHeight: 1 }}>▾</span>
+        <span style={{ fontSize: '10px', lineHeight: 1 }} aria-hidden="true">▾</span>
       </button>
 
       {open && (
         <div
-          role="listbox"
+          ref={panelRef}
+          role="menu"
           aria-label="Clipboard"
+          onKeyDown={handlePanelKeyDown}
           style={{
             position: 'absolute',
             top: 'calc(100% + 2px)',
@@ -518,7 +590,7 @@ function ClipboardDropdown({ tools, onCut, onCopy, onPaste, buttonStyle }) {
             <button
               key={opt.key}
               type="button"
-              role="option"
+              role="menuitem"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => { handlers[opt.key](); setOpen(false); }}
               style={{
@@ -1627,6 +1699,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             maxWidth: '80px',
           }}
           title="Font Size"
+          aria-label="Font Size"
         >
           <option value="10px">10px</option>
           <option value="12px">12px</option>
