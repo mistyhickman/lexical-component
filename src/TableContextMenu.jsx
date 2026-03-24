@@ -10,6 +10,14 @@
  * $getNodeByKey inside editorState.read(), which only needs the active editor
  * state (not the active editor reference that $getNearestNodeFromDOMNode
  * requires and that editorState.read() does not set).
+ *
+ * Accessibility: follows the ARIA menu / menuitem pattern.
+ * - Menu container: role="menu"
+ * - All interactive items: <button role="menuitem">
+ * - Submenus: role="menu" on the panel, aria-haspopup="menu" + aria-expanded on trigger
+ * - Keyboard: ArrowDown/Up navigate items, ArrowRight opens submenu,
+ *   ArrowLeft closes submenu, Home/End jump to first/last, Escape closes,
+ *   Tab closes and returns focus to the ▾ trigger.
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -96,6 +104,9 @@ export default function TableContextMenuPlugin() {
 
   const [widthValue, setWidthValue] = useState('65');
 
+  /** Which submenu is currently open via keyboard: 'align' | 'width' | null */
+  const [openSubmenu, setOpenSubmenu] = useState(null);
+
   const menuRef = useRef(null);       // ref to the menu DOM element
   const triggerRef = useRef(null);    // ref to the ▾ trigger button DOM element
   const lastCellRef = useRef(null);   // tracks hovered cell without causing extra renders
@@ -104,7 +115,22 @@ export default function TableContextMenuPlugin() {
   // Keep menuStateRef in sync so the global mousemove handler can read it
   useEffect(() => { menuStateRef.current = menu; }, [menu]);
 
-  const close = useCallback(() => setMenu(null), []);
+  const close = useCallback(() => {
+    setMenu(null);
+    setOpenSubmenu(null);
+    // Return focus to the ▾ trigger so keyboard users can continue navigating
+    triggerRef.current?.focus();
+  }, []);
+
+  // Focus the first menuitem when the menu opens
+  useEffect(() => {
+    if (menu) {
+      requestAnimationFrame(() => {
+        const firstItem = menuRef.current?.querySelector('[role="menuitem"]');
+        firstItem?.focus();
+      });
+    }
+  }, [menu]);
 
   // ── Mouse tracking (global — avoids "hover gap" between cell and trigger) ─
 
@@ -227,14 +253,96 @@ export default function TableContextMenuPlugin() {
       const inTrigger = triggerRef.current?.contains(e.target);
       if (!inMenu && !inTrigger) close();
     };
-    const onKD = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('mousedown', onMD);
-    document.addEventListener('keydown', onKD);
     return () => {
       document.removeEventListener('mousedown', onMD);
-      document.removeEventListener('keydown', onKD);
     };
   }, [menu, close]);
+
+  // ── Menu keyboard navigation ──────────────────────────────────────────────
+
+  const handleMenuKeyDown = useCallback((e) => {
+    // Collect all visible menuitems (excludes items hidden inside closed submenus)
+    const allItems = Array.from(
+      menuRef.current?.querySelectorAll('[role="menuitem"]') || []
+    ).filter((el) => el.offsetParent !== null);
+
+    const currentIdx = allItems.indexOf(document.activeElement);
+    const focused = document.activeElement;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        allItems[(currentIdx + 1) % allItems.length]?.focus();
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        allItems[(currentIdx - 1 + allItems.length) % allItems.length]?.focus();
+        break;
+
+      case 'Home':
+        e.preventDefault();
+        allItems[0]?.focus();
+        break;
+
+      case 'End':
+        e.preventDefault();
+        allItems[allItems.length - 1]?.focus();
+        break;
+
+      case 'ArrowRight': {
+        // Open submenu if the focused item is a submenu trigger
+        const submenuKey = focused?.getAttribute('data-submenu');
+        if (submenuKey) {
+          e.preventDefault();
+          setOpenSubmenu(submenuKey);
+          requestAnimationFrame(() => {
+            const panel = menuRef.current?.querySelector(`[data-submenu-panel="${submenuKey}"]`);
+            panel?.querySelector('[role="menuitem"]')?.focus();
+          });
+        }
+        break;
+      }
+
+      case 'ArrowLeft': {
+        // Close submenu if focus is inside one
+        const subPanel = focused?.closest('[data-submenu-panel]');
+        if (subPanel) {
+          e.preventDefault();
+          const key = subPanel.getAttribute('data-submenu-panel');
+          setOpenSubmenu(null);
+          requestAnimationFrame(() => {
+            menuRef.current?.querySelector(`[data-submenu="${key}"]`)?.focus();
+          });
+        }
+        break;
+      }
+
+      case 'Escape':
+        e.preventDefault();
+        // If inside a submenu, just close the submenu; otherwise close the whole menu
+        if (focused?.closest('[data-submenu-panel]')) {
+          const subPanel = focused.closest('[data-submenu-panel]');
+          const key = subPanel.getAttribute('data-submenu-panel');
+          setOpenSubmenu(null);
+          requestAnimationFrame(() => {
+            menuRef.current?.querySelector(`[data-submenu="${key}"]`)?.focus();
+          });
+        } else {
+          close();
+        }
+        break;
+
+      case 'Tab':
+        e.preventDefault();
+        close();
+        break;
+
+      default:
+        break;
+    }
+  }, [close]);
 
   // ── Table operations ──────────────────────────────────────────────────────
 
@@ -522,6 +630,8 @@ export default function TableContextMenuPlugin() {
           onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); openMenu(); }}
           title="Table options"
           aria-label="Table options"
+          aria-haspopup="menu"
+          aria-expanded={false}
         >
           ▾
         </button>
@@ -531,26 +641,57 @@ export default function TableContextMenuPlugin() {
       {menu && (
         <div
           ref={menuRef}
+          role="menu"
+          aria-label="Table options"
           className="lexical-table-context-menu"
           style={{ left: menuLeft, top: menuTop }}
           onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={handleMenuKeyDown}
         >
-          {/* Align Table */}
-          <div className="lctm-item lctm-has-sub">
-            <span>Align Table</span>
-            <span className="lctm-arrow">▶</span>
-            <div className="lctm-submenu">
-              <div className="lctm-item" onClick={() => alignTable('left')}>Left</div>
-              <div className="lctm-item" onClick={() => alignTable('center')}>Center</div>
-              <div className="lctm-item" onClick={() => alignTable('right')}>Right</div>
+          {/* Align Table submenu */}
+          <div className="lctm-has-sub">
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openSubmenu === 'align'}
+              data-submenu="align"
+              className="lctm-item"
+              onClick={() => setOpenSubmenu(openSubmenu === 'align' ? null : 'align')}
+            >
+              <span>Align Table</span>
+              <span className="lctm-arrow" aria-hidden="true">▶</span>
+            </button>
+            <div
+              role="menu"
+              aria-label="Align Table"
+              data-submenu-panel="align"
+              className={`lctm-submenu${openSubmenu === 'align' ? ' lctm-submenu-open' : ''}`}
+            >
+              <button role="menuitem" className="lctm-item" onClick={() => alignTable('left')}>Left</button>
+              <button role="menuitem" className="lctm-item" onClick={() => alignTable('center')}>Center</button>
+              <button role="menuitem" className="lctm-item" onClick={() => alignTable('right')}>Right</button>
             </div>
           </div>
 
-          {/* Table Width */}
-          <div className="lctm-item lctm-has-sub">
-            <span>Table Width</span>
-            <span className="lctm-arrow">▶</span>
-            <div className="lctm-submenu lctm-width-panel">
+          {/* Table Width submenu */}
+          <div className="lctm-has-sub">
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openSubmenu === 'width'}
+              data-submenu="width"
+              className="lctm-item"
+              onClick={() => setOpenSubmenu(openSubmenu === 'width' ? null : 'width')}
+            >
+              <span>Table Width</span>
+              <span className="lctm-arrow" aria-hidden="true">▶</span>
+            </button>
+            <div
+              role="menu"
+              aria-label="Table Width"
+              data-submenu-panel="width"
+              className={`lctm-submenu lctm-width-panel${openSubmenu === 'width' ? ' lctm-submenu-open' : ''}`}
+            >
               <div className="lctm-width-row">
                 <input
                   type="number"
@@ -559,10 +700,11 @@ export default function TableContextMenuPlugin() {
                   value={widthValue}
                   onChange={(e) => setWidthValue(e.target.value)}
                   className="lctm-width-input"
+                  aria-label="Table width percentage"
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 />
-                <span className="lctm-width-pct">%</span>
+                <span className="lctm-width-pct" aria-hidden="true">%</span>
                 <button className="lctm-width-apply" onClick={applyTableWidth}>
                   Apply
                 </button>
@@ -570,30 +712,30 @@ export default function TableContextMenuPlugin() {
             </div>
           </div>
 
-          <div className="lctm-sep" />
+          <div role="separator" className="lctm-sep" />
 
-          <div className="lctm-item" onClick={toggleCellHeader}>Toggle Column Header</div>
-          <div className="lctm-item" onClick={toggleRowHeader}>Toggle Row Header</div>
+          <button role="menuitem" className="lctm-item" onClick={toggleCellHeader}>Toggle Column Header</button>
+          <button role="menuitem" className="lctm-item" onClick={toggleRowHeader}>Toggle Row Header</button>
 
           {menu?.gridSelectionCellKeys?.length >= 2 && (
-            <div className="lctm-item" onClick={mergeCells}>Merge Cells</div>
+            <button role="menuitem" className="lctm-item" onClick={mergeCells}>Merge Cells</button>
           )}
           {menu?.isMergedCell && (
-            <div className="lctm-item" onClick={unmergeCells}>Unmerge Cell</div>
+            <button role="menuitem" className="lctm-item" onClick={unmergeCells}>Unmerge Cell</button>
           )}
 
-          <div className="lctm-sep" />
+          <div role="separator" className="lctm-sep" />
 
-          <div className="lctm-item" onClick={() => insertRow('above')}>Insert Row Above</div>
-          <div className="lctm-item" onClick={() => insertRow('below')}>Insert Row Below</div>
-          <div className="lctm-item" onClick={() => insertColumn('left')}>Insert Column Left</div>
-          <div className="lctm-item" onClick={() => insertColumn('right')}>Insert Column Right</div>
+          <button role="menuitem" className="lctm-item" onClick={() => insertRow('above')}>Insert Row Above</button>
+          <button role="menuitem" className="lctm-item" onClick={() => insertRow('below')}>Insert Row Below</button>
+          <button role="menuitem" className="lctm-item" onClick={() => insertColumn('left')}>Insert Column Left</button>
+          <button role="menuitem" className="lctm-item" onClick={() => insertColumn('right')}>Insert Column Right</button>
 
-          <div className="lctm-sep" />
+          <div role="separator" className="lctm-sep" />
 
-          <div className="lctm-item lctm-danger" onClick={deleteRow}>Delete Row</div>
-          <div className="lctm-item lctm-danger" onClick={deleteColumn}>Delete Column</div>
-          <div className="lctm-item lctm-danger" onClick={deleteTable}>Delete Table</div>
+          <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteRow}>Delete Row</button>
+          <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteColumn}>Delete Column</button>
+          <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteTable}>Delete Table</button>
         </div>
       )}
     </>,
