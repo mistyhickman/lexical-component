@@ -1203,7 +1203,9 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
             txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
           );
         } else if (caseType === 'sentencecase') {
-          newText = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+          newText = text.toLowerCase().replace(/(^|[.!?]\s+)([a-z])/g, (match, prefix, letter) =>
+            prefix + letter.toUpperCase()
+          );
         }
 
         selection.insertText(newText);
