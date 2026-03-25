@@ -1856,12 +1856,16 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
               <polyline points="1,9 4,9 4,12"/>
             </svg>
           ) : (
-            /* Maximize: four corner brackets pointing OUTWARD from center */
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-              <polyline points="1,4 1,1 4,1"/>
-              <polyline points="9,1 12,1 12,4"/>
-              <polyline points="12,9 12,12 9,12"/>
-              <polyline points="4,12 1,12 1,9"/>
+            /* Maximize: corner brackets with diagonal arrow ticks pointing outward */
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="4,1.5 1.5,1.5 1.5,4"/>
+              <polyline points="9,1.5 11.5,1.5 11.5,4"/>
+              <polyline points="11.5,9 11.5,11.5 9,11.5"/>
+              <polyline points="1.5,9 1.5,11.5 4,11.5"/>
+              <line x1="1.5" y1="1.5" x2="4" y2="4"/>
+              <line x1="11.5" y1="1.5" x2="9" y2="4"/>
+              <line x1="11.5" y1="11.5" x2="9" y2="9"/>
+              <line x1="1.5" y1="11.5" x2="4" y2="9"/>
             </svg>
           )}
         </button>
