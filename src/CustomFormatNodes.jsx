@@ -11,7 +11,7 @@
  */
 
 import React from 'react';
-import { ElementNode, DecoratorNode, $applyNodeReplacement } from 'lexical';
+import { ElementNode, DecoratorNode, $applyNodeReplacement, $createParagraphNode } from 'lexical';
 
 // =====================================================================
 // AddressNode — wraps content in an <address> HTML element
@@ -470,6 +470,16 @@ export class AttributedHeadingNode extends ElementNode {
     node.setIndent(serializedNode.indent);
     node.setDirection(serializedNode.direction);
     return node;
+  }
+
+  // When Enter is pressed inside a heading, insert a plain paragraph after it.
+  // Without this override, ElementNode.insertNewAfter() returns null and the
+  // key press is swallowed entirely.
+  insertNewAfter(selection, restoreSelection = true) {
+    const newElement = $createParagraphNode();
+    newElement.setDirection(this.getDirection());
+    this.insertAfter(newElement, restoreSelection);
+    return newElement;
   }
 
   exportJSON() {

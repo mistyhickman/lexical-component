@@ -167,9 +167,20 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-content-editable {
           outline: none; /* Remove browser's default focus outline */
           position: relative;
-          font-family: 'Times New Roman', serif;
           font-size: 12px;
           line-height: 1.2;
+        }
+
+        /* Lock the default font to Times New Roman so host-application body/element
+           styles cannot bleed in. Three-class prefix raises specificity to (0,3,0)
+           which beats typical single- or two-class host rules.
+           :not([style*="font-family"]) preserves any inline font-family the user
+           applied via the font-family toolbar dropdown. */
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable {
+          font-family: 'Times New Roman', serif !important;
+        }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable *:not([style*="font-family"]) {
+          font-family: inherit !important;
         }
 
         /* Placeholder text shown when editor is empty */
