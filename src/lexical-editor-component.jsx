@@ -167,6 +167,8 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-content-editable {
           outline: none; /* Remove browser's default focus outline */
           position: relative;
+          font-size: 12px;
+          line-height: 1.2;
         }
 
         /* Placeholder text shown when editor is empty */
@@ -258,6 +260,7 @@ class LexicalEditorElement extends HTMLElement {
           letter-spacing: normal !important;
           word-spacing: normal !important;
           font-variant: normal !important;
+          line-height: inherit !important;
         }
 
         /* Headings: also lock size, weight, style, margin, and padding so
