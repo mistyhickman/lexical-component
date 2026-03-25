@@ -649,7 +649,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
 
   // Editor feature states
   const [fontSize, setFontSize] = useState('12px');
-  const [fontFamily, setFontFamily] = useState('default');
+  const [fontFamily, setFontFamily] = useState("'Times New Roman', serif");
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSource, setShowSource] = useState(false); // HTML source view
   const [sourceHTML, setSourceHTML] = useState(''); // HTML content for source view
