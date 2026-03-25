@@ -167,6 +167,7 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-content-editable {
           outline: none; /* Remove browser's default focus outline */
           position: relative;
+          font-family: 'Times New Roman', serif;
           font-size: 12px;
           line-height: 1.2;
         }
