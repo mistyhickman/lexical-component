@@ -648,7 +648,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
   const [canRedo, setCanRedo] = useState(false);
 
   // Editor feature states
-  const [fontSize, setFontSize] = useState('16px');
+  const [fontSize, setFontSize] = useState('12px');
   const [fontFamily, setFontFamily] = useState('default');
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSource, setShowSource] = useState(false); // HTML source view
