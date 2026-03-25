@@ -662,20 +662,21 @@ export default function LexicalEditor({
    * contentEditableStyle - Inline styles for the editable area
    * In React, inline styles are JavaScript objects with camelCase properties
    */
+  // Tracks whether the editor wrapper has focus — used to expand the content area
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const contentEditableStyle = {
     minHeight: editorSizing.minHeight, // Minimum height
-    maxHeight: editorSizing.maxHeight, // Maximum height (scrolls after this)
-    resize: editorSizing.resize, // Allow user to resize ('vertical', 'horizontal', 'both', 'none')
-    overflow: 'auto', // Add scrollbars when content exceeds maxHeight
+    // When expanded, remove the max-height cap so all content is visible
+    ...(isExpanded ? {} : { maxHeight: editorSizing.maxHeight }),
+    resize: isExpanded ? 'none' : editorSizing.resize, // Disable resize handle when expanded
+    overflow: isExpanded ? 'visible' : 'auto', // Let content flow when expanded
     padding: '10px',
     border: '1px solid #ccc',
     borderRadius: '4px',
     outline: 'none', // Remove default focus outline
 
     // Conditional styling: If not editable, add read-only styling
-    // The ... spread operator merges the object on the right
-    // !editable is a boolean check (! means NOT)
-    // && is logical AND - only executes right side if left side is true
     ...(!editable && { backgroundColor: '#f5f5f5', cursor: 'not-allowed' })
   };
 
@@ -709,7 +710,17 @@ export default function LexicalEditor({
           Think of it like a container that holds the editor instance */}
       <LexicalComposer initialConfig={initialConfig}>
 
-        <div className="lexical-editor-wrapper">
+        <div
+          className="lexical-editor-wrapper"
+          onFocus={() => setIsExpanded(true)}
+          onBlur={(e) => {
+            // Only collapse when focus leaves the entire wrapper (not when
+            // moving between toolbar buttons and the editor content area)
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+              setIsExpanded(false);
+            }
+          }}
+        >
 
           {/* Our custom toolbar with formatting buttons */}
           <ToolbarPlugin
