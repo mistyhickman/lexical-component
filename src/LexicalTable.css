@@ -8,14 +8,13 @@
 table.lexical-table,
 .lexical-table {
   display: table !important;
-  border-collapse: collapse;
-  border-spacing: 0;
   width: 100%;
   max-width: 100%;
   margin: 10px 0;
-  border: 1px solid #ccc;
   background-color: white;
   table-layout: fixed;
+  /* border, border-collapse, and border-spacing are intentionally omitted here
+     so that the HTML border/cellspacing attributes control those visually */
 }
 
 /* Table row styling */
@@ -29,8 +28,6 @@ tr.lexical-table-row,
 th.lexical-table-cell-header,
 .lexical-table-cell-header {
   display: table-cell !important;
-  border: 1px solid #ccc;
-  padding: 8px 12px;
   min-width: 75px;
   min-height: 30px;
   background-color: #f0f0f0;
@@ -39,14 +36,14 @@ th.lexical-table-cell-header,
   vertical-align: top;
   position: relative;
   outline: none;
+  /* border and padding are intentionally omitted so the HTML border/cellpadding
+     attributes control those visually */
 }
 
 /* Table data cell styling */
 td.lexical-table-cell,
 .lexical-table-cell {
   display: table-cell !important;
-  border: 1px solid #ccc;
-  padding: 8px 12px;
   min-width: 75px;
   min-height: 30px;
   background-color: white;
@@ -54,6 +51,8 @@ td.lexical-table-cell,
   text-align: left;
   position: relative;
   outline: none;
+  /* border and padding are intentionally omitted so the HTML border/cellpadding
+     attributes control those visually */
 }
 
 /* Table cell content - paragraphs inside cells */

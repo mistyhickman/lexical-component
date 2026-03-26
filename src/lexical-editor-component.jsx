@@ -327,6 +327,23 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-content-editable colgroup { display: table-column-group !important; }
         .lexical-content-editable col      { display: table-column !important; }
 
+        /* ===== EDITOR-ONLY: ZERO-BORDER TABLE VISUAL AID =====
+           When a table has border="0" (or no border attribute at all), it would
+           be completely invisible to the author.  Show a faint dashed outline on
+           the table and its cells so the author can see where the table is.
+           These rules live only in the injected editor stylesheet — they are
+           never included in the exported HTML that gets saved to the database. */
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable table[border="0"],
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable table:not([border]) {
+          outline: 1px dashed #bbb;
+        }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable table[border="0"] td,
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable table[border="0"] th,
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable table:not([border]) td,
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable table:not([border]) th {
+          border: 1px dashed #ddd !important;
+        }
+
         /* ===== RAW HTML BLOCK ISOLATION =====
            The outer wrapper div that Lexical creates for RawHtmlNode
            (contentEditable=false) must not be affected by application CSS

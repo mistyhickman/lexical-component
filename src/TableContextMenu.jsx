@@ -466,8 +466,17 @@ export default function TableContextMenuPlugin() {
       const cellNode = $getNodeByKey(menu.cellKey);
       if (!cellNode) return;
       if (cellNode instanceof AttributedTableStructureNode) {
-        // HTML-imported table — toggle td ↔ th via __tagName
-        cellNode.getWritable().__tagName = cellNode.__tagName === 'td' ? 'th' : 'td';
+        // HTML-imported table — toggle td ↔ th via __tagName AND update class
+        const writable = cellNode.getWritable();
+        const isCurrentlyHeader = writable.__tagName === 'th';
+        writable.__tagName = isCurrentlyHeader ? 'td' : 'th';
+        const attrs = { ...writable.__attributes };
+        if (isCurrentlyHeader) {
+          if (attrs.class === 'lexical-table-cell-header') attrs.class = 'lexical-table-cell';
+        } else {
+          if (attrs.class === 'lexical-table-cell') attrs.class = 'lexical-table-cell-header';
+        }
+        writable.__attributes = attrs;
       } else {
         // Toolbar-created table — toggle __headerState COLUMN bit
         const isHeader = cellNode.hasHeader();
@@ -487,10 +496,20 @@ export default function TableContextMenuPlugin() {
       const cells = rowNode.getChildren();
       if (cells.length === 0) return;
       if (cells[0] instanceof AttributedTableStructureNode) {
-        // HTML-imported table — toggle __tagName on each cell
+        // HTML-imported table — toggle __tagName AND class on each cell
         const allTh = cells.every((c) => c.__tagName === 'th');
         const newTag = allTh ? 'td' : 'th';
-        cells.forEach((c) => { c.getWritable().__tagName = newTag; });
+        cells.forEach((c) => {
+          const writable = c.getWritable();
+          writable.__tagName = newTag;
+          const attrs = { ...writable.__attributes };
+          if (allTh) {
+            if (attrs.class === 'lexical-table-cell-header') attrs.class = 'lexical-table-cell';
+          } else {
+            if (attrs.class === 'lexical-table-cell') attrs.class = 'lexical-table-cell-header';
+          }
+          writable.__attributes = attrs;
+        });
       } else {
         // Toolbar-created table — toggle ROW header state on each cell
         const allHeaders = cells.every((c) => c.hasHeader());

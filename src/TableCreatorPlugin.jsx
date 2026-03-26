@@ -67,19 +67,28 @@ const SizeLabel = styled.div`
         // Build table as AttributedTableStructureNode so that border, cellpadding,
         // and cellspacing are real HTML attributes on the element and survive
         // round-trips through the HTML export / database save cycle.
+        // CSS classes (lexical-table, lexical-table-cell, etc.) are preserved by
+        // cleanExportedHtml() for table elements, so they survive save/reload and
+        // give the table the same polished look as toolbar-created tables.
         const table = $createAttributedTableStructureNode('table', {
           border: '1',
           cellpadding: '2',
           cellspacing: '2',
+          class: 'lexical-table',
+          style: 'width: 100%;',
         });
         const tbody = $createAttributedTableStructureNode('tbody', {});
 
         for (let r = 0; r < rows; r++) {
-          const tr = $createAttributedTableStructureNode('tr', {});
+          const isHeader = r === 0;
+          const tr = $createAttributedTableStructureNode('tr', { class: 'lexical-table-row' });
           for (let c = 0; c < cols; c++) {
-            const td = $createAttributedTableStructureNode('td', {});
-            td.append($createParagraphNode());
-            tr.append(td);
+            // First row uses <th> with header styling, remaining rows use <td>
+            const cellTag = isHeader ? 'th' : 'td';
+            const cellClass = isHeader ? 'lexical-table-cell-header' : 'lexical-table-cell';
+            const cell = $createAttributedTableStructureNode(cellTag, { class: cellClass });
+            cell.append($createParagraphNode());
+            tr.append(cell);
           }
           tbody.append(tr);
         }
