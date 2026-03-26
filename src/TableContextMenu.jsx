@@ -103,6 +103,9 @@ export default function TableContextMenuPlugin() {
   const [menu, setMenu] = useState(null);
 
   const [widthValue, setWidthValue] = useState('65');
+  const [borderValue, setBorderValue] = useState('');
+  const [cellPaddingValue, setCellPaddingValue] = useState('');
+  const [cellSpacingValue, setCellSpacingValue] = useState('');
 
   /** Which submenu is currently open via keyboard: 'align' | 'width' | null */
   const [openSubmenu, setOpenSubmenu] = useState(null);
@@ -182,6 +185,7 @@ export default function TableContextMenuPlugin() {
 
     let cellKey = null, rowKey = null, tableKey = null;
     let colIndex = 0, currentWidth = '65';
+    let currentBorder = '', currentCellPadding = '', currentCellSpacing = '';
     let gridSelectionCellKeys = null;
     let isMergedCell = false;
 
@@ -221,6 +225,9 @@ export default function TableContextMenuPlugin() {
       const widthStr = styleObj['width'] || attrs.width || '';
       const m = widthStr.match(/^(\d+(?:\.\d+)?)/);
       if (m) currentWidth = m[1];
+      currentBorder = attrs.border || '';
+      currentCellPadding = attrs.cellpadding || '';
+      currentCellSpacing = attrs.cellspacing || '';
 
       // GridSelection = multi-cell selection (native TableNode only)
       if ($isTableCellNode(cellNode)) {
@@ -240,6 +247,9 @@ export default function TableContextMenuPlugin() {
 
     if (!rowKey || !tableKey) return;
     setWidthValue(currentWidth);
+    setBorderValue(currentBorder);
+    setCellPaddingValue(currentCellPadding);
+    setCellSpacingValue(currentCellSpacing);
     const rect = cellEl.getBoundingClientRect();
     setMenu({ x: rect.right, y: rect.top + 18, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergedCell });
   }, [editor]);
@@ -390,6 +400,60 @@ export default function TableContextMenuPlugin() {
     // Also apply directly to the DOM element — required for built-in TableNode
     const domEl = editor.getElementByKey?.(menu.tableKey);
     if (domEl) domEl.style.width = `${w}%`;
+    close();
+  };
+
+  const applyBorder = () => {
+    if (!menu) return;
+    const v = borderValue.trim();
+    editor.update(() => {
+      const tableNode = $getNodeByKey(menu.tableKey);
+      if (!tableNode) return;
+      const writable = tableNode.getWritable();
+      const attrs = { ...(writable.__attributes || {}) };
+      if (v) attrs.border = v; else delete attrs.border;
+      writable.__attributes = attrs;
+    });
+    const domEl = editor.getElementByKey?.(menu.tableKey);
+    if (domEl) {
+      if (v) domEl.setAttribute('border', v); else domEl.removeAttribute('border');
+    }
+    close();
+  };
+
+  const applyCellPadding = () => {
+    if (!menu) return;
+    const v = cellPaddingValue.trim();
+    editor.update(() => {
+      const tableNode = $getNodeByKey(menu.tableKey);
+      if (!tableNode) return;
+      const writable = tableNode.getWritable();
+      const attrs = { ...(writable.__attributes || {}) };
+      if (v) attrs.cellpadding = v; else delete attrs.cellpadding;
+      writable.__attributes = attrs;
+    });
+    const domEl = editor.getElementByKey?.(menu.tableKey);
+    if (domEl) {
+      if (v) domEl.setAttribute('cellpadding', v); else domEl.removeAttribute('cellpadding');
+    }
+    close();
+  };
+
+  const applyCellSpacing = () => {
+    if (!menu) return;
+    const v = cellSpacingValue.trim();
+    editor.update(() => {
+      const tableNode = $getNodeByKey(menu.tableKey);
+      if (!tableNode) return;
+      const writable = tableNode.getWritable();
+      const attrs = { ...(writable.__attributes || {}) };
+      if (v) attrs.cellspacing = v; else delete attrs.cellspacing;
+      writable.__attributes = attrs;
+    });
+    const domEl = editor.getElementByKey?.(menu.tableKey);
+    if (domEl) {
+      if (v) domEl.setAttribute('cellspacing', v); else domEl.removeAttribute('cellspacing');
+    }
     close();
   };
 
@@ -706,6 +770,123 @@ export default function TableContextMenuPlugin() {
                 />
                 <span className="lctm-width-pct" aria-hidden="true">%</span>
                 <button className="lctm-width-apply" onClick={applyTableWidth}>
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Border Size submenu */}
+          <div className="lctm-has-sub">
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openSubmenu === 'border'}
+              data-submenu="border"
+              className="lctm-item"
+              onClick={() => setOpenSubmenu(openSubmenu === 'border' ? null : 'border')}
+            >
+              <span>Border Size</span>
+              <span className="lctm-arrow" aria-hidden="true">▶</span>
+            </button>
+            <div
+              role="menu"
+              aria-label="Border Size"
+              data-submenu-panel="border"
+              className={`lctm-submenu lctm-width-panel${openSubmenu === 'border' ? ' lctm-submenu-open' : ''}`}
+            >
+              <div className="lctm-width-row">
+                <input
+                  type="number"
+                  min="0"
+                  value={borderValue}
+                  onChange={(e) => setBorderValue(e.target.value)}
+                  className="lctm-width-input"
+                  aria-label="Table border size in pixels"
+                  placeholder="0"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="lctm-width-pct" aria-hidden="true">px</span>
+                <button className="lctm-width-apply" onClick={applyBorder}>
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Cell Padding submenu */}
+          <div className="lctm-has-sub">
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openSubmenu === 'cellpadding'}
+              data-submenu="cellpadding"
+              className="lctm-item"
+              onClick={() => setOpenSubmenu(openSubmenu === 'cellpadding' ? null : 'cellpadding')}
+            >
+              <span>Cell Padding</span>
+              <span className="lctm-arrow" aria-hidden="true">▶</span>
+            </button>
+            <div
+              role="menu"
+              aria-label="Cell Padding"
+              data-submenu-panel="cellpadding"
+              className={`lctm-submenu lctm-width-panel${openSubmenu === 'cellpadding' ? ' lctm-submenu-open' : ''}`}
+            >
+              <div className="lctm-width-row">
+                <input
+                  type="number"
+                  min="0"
+                  value={cellPaddingValue}
+                  onChange={(e) => setCellPaddingValue(e.target.value)}
+                  className="lctm-width-input"
+                  aria-label="Table cell padding in pixels"
+                  placeholder="0"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="lctm-width-pct" aria-hidden="true">px</span>
+                <button className="lctm-width-apply" onClick={applyCellPadding}>
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Cell Spacing submenu */}
+          <div className="lctm-has-sub">
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openSubmenu === 'cellspacing'}
+              data-submenu="cellspacing"
+              className="lctm-item"
+              onClick={() => setOpenSubmenu(openSubmenu === 'cellspacing' ? null : 'cellspacing')}
+            >
+              <span>Cell Spacing</span>
+              <span className="lctm-arrow" aria-hidden="true">▶</span>
+            </button>
+            <div
+              role="menu"
+              aria-label="Cell Spacing"
+              data-submenu-panel="cellspacing"
+              className={`lctm-submenu lctm-width-panel${openSubmenu === 'cellspacing' ? ' lctm-submenu-open' : ''}`}
+            >
+              <div className="lctm-width-row">
+                <input
+                  type="number"
+                  min="0"
+                  value={cellSpacingValue}
+                  onChange={(e) => setCellSpacingValue(e.target.value)}
+                  className="lctm-width-input"
+                  aria-label="Table cell spacing in pixels"
+                  placeholder="0"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="lctm-width-pct" aria-hidden="true">px</span>
+                <button className="lctm-width-apply" onClick={applyCellSpacing}>
                   Apply
                 </button>
               </div>
