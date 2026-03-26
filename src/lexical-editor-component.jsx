@@ -195,7 +195,8 @@ class LexicalEditorElement extends HTMLElement {
         /* Paragraph styling — no margin so Enter produces the same visual
            line gap as a soft wrap within a paragraph */
         .lexical-paragraph {
-          margin: 0;
+          margin: 0 0 1em 0;
+          line-height: 1.5em;
         }
 
         /* Heading styles - Different sizes for different heading levels.
@@ -277,18 +278,24 @@ class LexicalEditorElement extends HTMLElement {
           margin: 0 !important;
         }
 
+        /* Paragraphs get bottom margin to visually distinguish a paragraph
+           break (Enter) from a line break (Shift+Enter / <br>). */
+        .lexical-editor-wrapper .lexical-content-editable p {
+          margin: 0 0 1em 0 !important;
+        }
+
         /* Headings: also lock size, weight, style, margin, and padding so
            application rules cannot push them into unexpected dimensions.
            Three-class prefix (.lexical-editor-container .lexical-editor-wrapper
            .lexical-content-editable) raises specificity to (0,3,1) so these
            rules beat virtually any host-application rule — even two-class
            selectors with !important at (0,2,1) specificity. */
-        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h1 { font-size: 2em !important;    font-weight: bold !important; font-style: normal !important; margin: 14px 0 8px 0 !important; padding: 0 !important; line-height: 1.3 !important; }
-        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h2 { font-size: 1.5em !important;  font-weight: bold !important; font-style: normal !important; margin: 12px 0 6px 0 !important; padding: 0 !important; line-height: 1.3 !important; }
-        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h3 { font-size: 1.17em !important; font-weight: bold !important; font-style: normal !important; margin: 10px 0 6px 0 !important; padding: 0 !important; line-height: 1.3 !important; }
-        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h4 { font-size: 1em !important;    font-weight: bold !important; font-style: normal !important; margin: 10px 0 4px 0 !important; padding: 0 !important; line-height: 1.3 !important; }
-        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 8px 0 4px 0 !important;  padding: 0 !important; line-height: 1.3 !important; }
-        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 8px 0 4px 0 !important;  padding: 0 !important; line-height: 1.3 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h1 { font-size: 2em !important;    font-weight: bold !important; font-style: normal !important; margin: 14px 0 8px 0 !important; padding: 0 !important; line-height: 1.2 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h2 { font-size: 1.5em !important;  font-weight: bold !important; font-style: normal !important; margin: 12px 0 6px 0 !important; padding: 0 !important; line-height: 1.2 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h3 { font-size: 1.17em !important; font-weight: bold !important; font-style: normal !important; margin: 10px 0 6px 0 !important; padding: 0 !important; line-height: 1.2 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h4 { font-size: 1em !important;    font-weight: bold !important; font-style: normal !important; margin: 10px 0 4px 0 !important; padding: 0 !important; line-height: 1.2 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h5 { font-size: 0.83em !important; font-weight: bold !important; font-style: normal !important; margin: 8px 0 4px 0 !important;  padding: 0 !important; line-height: 1.2 !important; }
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable h6 { font-size: 0.67em !important; font-weight: bold !important; font-style: normal !important; margin: 8px 0 4px 0 !important;  padding: 0 !important; line-height: 1.2 !important; }
 
         /* ===== HEADING CHILD ELEMENT ISOLATION =====
            base.css and similar host stylesheets often reset font-size on ALL
