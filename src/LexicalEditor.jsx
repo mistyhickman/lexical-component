@@ -502,6 +502,19 @@ export function cleanExportedHtml(html) {
     }
   });
 
+  // 5. Remove lone <br> inside empty paragraphs.
+  //    Lexical exports empty lines as <p><br></p>. In browsers the <br>
+  //    is needed to give the paragraph height, but PDF renderers (CFPDF,
+  //    iText, etc.) treat it as an actual line break on top of the paragraph
+  //    gap, doubling the whitespace. Stripping it leaves <p></p> which PDF
+  //    renderers handle consistently.
+  doc.querySelectorAll('p').forEach(p => {
+    const children = Array.from(p.childNodes);
+    if (children.length === 1 && children[0].nodeName === 'BR') {
+      p.removeChild(children[0]);
+    }
+  });
+
   return doc.body.innerHTML;
 }
 
