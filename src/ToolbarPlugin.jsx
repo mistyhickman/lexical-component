@@ -648,8 +648,8 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
   const [canRedo, setCanRedo] = useState(false);
 
   // Editor feature states
-  const [fontSize, setFontSize] = useState('12px');
-  const [fontFamily, setFontFamily] = useState("'Times New Roman', serif");
+  const [fontSize, setFontSize] = useState('14px');
+  const [fontFamily, setFontFamily] = useState('Arial, sans-serif');
   const [isMaximized, setIsMaximized] = useState(false);
   const [showSource, setShowSource] = useState(false); // HTML source view
   const [sourceHTML, setSourceHTML] = useState(''); // HTML content for source view
