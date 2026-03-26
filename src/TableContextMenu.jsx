@@ -406,17 +406,20 @@ export default function TableContextMenuPlugin() {
   const applyBorder = () => {
     if (!menu) return;
     const v = borderValue.trim();
+    // Persist on AttributedTableStructureNode (DB-loaded tables) via Lexical state
     editor.update(() => {
       const tableNode = $getNodeByKey(menu.tableKey);
-      if (!tableNode) return;
+      if (!tableNode || !tableNode.__attributes) return;
       const writable = tableNode.getWritable();
-      const attrs = { ...(writable.__attributes || {}) };
+      const attrs = { ...writable.__attributes };
       if (v) attrs.border = v; else delete attrs.border;
       writable.__attributes = attrs;
     });
-    const domEl = editor.getElementByKey?.(menu.tableKey);
-    if (domEl) {
-      if (v) domEl.setAttribute('border', v); else domEl.removeAttribute('border');
+    // Direct DOM update — reliable for both node types; closest('table') avoids
+    // any Lexical key-map lookup issues and survives TablePlugin reconciliation
+    const tableEl = lastCellRef.current?.closest('table');
+    if (tableEl) {
+      if (v) tableEl.setAttribute('border', v); else tableEl.removeAttribute('border');
     }
     close();
   };
@@ -426,15 +429,15 @@ export default function TableContextMenuPlugin() {
     const v = cellPaddingValue.trim();
     editor.update(() => {
       const tableNode = $getNodeByKey(menu.tableKey);
-      if (!tableNode) return;
+      if (!tableNode || !tableNode.__attributes) return;
       const writable = tableNode.getWritable();
-      const attrs = { ...(writable.__attributes || {}) };
+      const attrs = { ...writable.__attributes };
       if (v) attrs.cellpadding = v; else delete attrs.cellpadding;
       writable.__attributes = attrs;
     });
-    const domEl = editor.getElementByKey?.(menu.tableKey);
-    if (domEl) {
-      if (v) domEl.setAttribute('cellpadding', v); else domEl.removeAttribute('cellpadding');
+    const tableEl = lastCellRef.current?.closest('table');
+    if (tableEl) {
+      if (v) tableEl.setAttribute('cellpadding', v); else tableEl.removeAttribute('cellpadding');
     }
     close();
   };
@@ -444,15 +447,15 @@ export default function TableContextMenuPlugin() {
     const v = cellSpacingValue.trim();
     editor.update(() => {
       const tableNode = $getNodeByKey(menu.tableKey);
-      if (!tableNode) return;
+      if (!tableNode || !tableNode.__attributes) return;
       const writable = tableNode.getWritable();
-      const attrs = { ...(writable.__attributes || {}) };
+      const attrs = { ...writable.__attributes };
       if (v) attrs.cellspacing = v; else delete attrs.cellspacing;
       writable.__attributes = attrs;
     });
-    const domEl = editor.getElementByKey?.(menu.tableKey);
-    if (domEl) {
-      if (v) domEl.setAttribute('cellspacing', v); else domEl.removeAttribute('cellspacing');
+    const tableEl = lastCellRef.current?.closest('table');
+    if (tableEl) {
+      if (v) tableEl.setAttribute('cellspacing', v); else tableEl.removeAttribute('cellspacing');
     }
     close();
   };
