@@ -14,10 +14,10 @@ import { useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { INSERT_TABLE_COMMAND } from '@lexical/table';
 import Popover from '@mui/material/Popover';
-import { $setSelection } from 'lexical';
+import { $setSelection, $getSelection, $isRangeSelection, $createParagraphNode } from 'lexical';
 import PropTypes from 'prop-types';
+import { $createAttributedTableStructureNode } from './CustomFormatNodes';
 
 const gridSize = 8;
 
@@ -64,8 +64,45 @@ const SizeLabel = styled.div`
       editor.update(() => {
         if (savedSelectionRef.current) $setSelection(savedSelectionRef.current);
 
-        editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: cols , rows });
-      editor.focus();
+        // Build table as AttributedTableStructureNode so that border, cellpadding,
+        // and cellspacing are real HTML attributes on the element and survive
+        // round-trips through the HTML export / database save cycle.
+        const table = $createAttributedTableStructureNode('table', {
+          border: '1',
+          cellpadding: '2',
+          cellspacing: '2',
+        });
+        const tbody = $createAttributedTableStructureNode('tbody', {});
+
+        for (let r = 0; r < rows; r++) {
+          const tr = $createAttributedTableStructureNode('tr', {});
+          for (let c = 0; c < cols; c++) {
+            const td = $createAttributedTableStructureNode('td', {});
+            td.append($createParagraphNode());
+            tr.append(td);
+          }
+          tbody.append(tr);
+        }
+        table.append(tbody);
+
+        // Insert the table after the current top-level block (paragraph / heading)
+        // then add a trailing paragraph so the cursor can move below the table.
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          const anchor = selection.anchor.getNode();
+          const topBlock = anchor.getTopLevelElementOrThrow();
+          topBlock.insertAfter(table);
+        } else {
+          // Fallback: append at end of document root
+          const root = editor.getRootElement();
+          if (root) table.insertAfter($createParagraphNode());
+        }
+
+        const trailingPara = $createParagraphNode();
+        table.insertAfter(trailingPara);
+        trailingPara.select();
+
+        editor.focus();
       });
       handleClose();
     };
