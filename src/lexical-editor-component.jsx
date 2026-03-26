@@ -167,7 +167,7 @@ class LexicalEditorElement extends HTMLElement {
         .lexical-content-editable {
           outline: none; /* Remove browser's default focus outline */
           position: relative;
-          font-size: 12px;
+          font-size: 14px;
           line-height: 1.2;
         }
 
@@ -177,7 +177,7 @@ class LexicalEditorElement extends HTMLElement {
            :not([style*="font-family"]) preserves any inline font-family the user
            applied via the font-family toolbar dropdown. */
         .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable {
-          font-family: 'Times New Roman', serif !important;
+          font-family: Arial, sans-serif !important;
         }
         .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable *:not([style*="font-family"]) {
           font-family: inherit !important;
@@ -192,9 +192,10 @@ class LexicalEditorElement extends HTMLElement {
           pointer-events: none; /* Don't block clicks to editor */
           user-select: none; /* Can't be selected/highlighted */
         }
-        /* Paragraph styling */
+        /* Paragraph styling — no margin so Enter produces the same visual
+           line gap as a soft wrap within a paragraph */
         .lexical-paragraph {
-          margin: 0 0 10px 0; /* Bottom margin only */
+          margin: 0;
         }
 
         /* Heading styles - Different sizes for different heading levels.
@@ -273,6 +274,7 @@ class LexicalEditorElement extends HTMLElement {
           word-spacing: normal !important;
           font-variant: normal !important;
           line-height: inherit !important;
+          margin: 0 !important;
         }
 
         /* Headings: also lock size, weight, style, margin, and padding so
