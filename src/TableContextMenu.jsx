@@ -106,6 +106,8 @@ export default function TableContextMenuPlugin() {
   const [borderValue, setBorderValue] = useState('');
   const [cellPaddingValue, setCellPaddingValue] = useState('');
   const [cellSpacingValue, setCellSpacingValue] = useState('');
+  const [rowHeightValue, setRowHeightValue] = useState('');
+  const [colWidthValue, setColWidthValue] = useState('');
 
   /** Which submenu is currently open via keyboard: 'align' | 'width' | null */
   const [openSubmenu, setOpenSubmenu] = useState(null);
@@ -186,6 +188,7 @@ export default function TableContextMenuPlugin() {
     let cellKey = null, rowKey = null, tableKey = null;
     let colIndex = 0, currentWidth = '65';
     let currentBorder = '', currentCellPadding = '', currentCellSpacing = '';
+    let currentRowHeight = '', currentColWidth = '';
     let gridSelectionCellKeys = null;
     let isMergedCell = false;
 
@@ -229,6 +232,14 @@ export default function TableContextMenuPlugin() {
       currentCellPadding = attrs.cellpadding || '';
       currentCellSpacing = attrs.cellspacing || '';
 
+      // Pre-fill row height from the row node's style
+      const rowStyleObj = parseStyle(rowNode.__attributes?.style || '');
+      currentRowHeight = rowStyleObj['height']?.replace('px', '').trim() || '';
+
+      // Pre-fill column width from the hovered cell's style
+      const cellStyleObj = parseStyle(cellNode.__attributes?.style || '');
+      currentColWidth = cellStyleObj['width']?.replace('px', '').trim() || '';
+
       // GridSelection = multi-cell selection (native TableNode only)
       if ($isTableCellNode(cellNode)) {
         const selection = $getSelection();
@@ -250,6 +261,8 @@ export default function TableContextMenuPlugin() {
     setBorderValue(currentBorder);
     setCellPaddingValue(currentCellPadding);
     setCellSpacingValue(currentCellSpacing);
+    setRowHeightValue(currentRowHeight);
+    setColWidthValue(currentColWidth);
     const rect = cellEl.getBoundingClientRect();
     setMenu({ x: rect.right, y: rect.top + 18, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergedCell });
   }, [editor]);
@@ -456,6 +469,58 @@ export default function TableContextMenuPlugin() {
     const tableEl = lastCellRef.current?.closest('table');
     if (tableEl) {
       if (v) tableEl.setAttribute('cellspacing', v); else tableEl.removeAttribute('cellspacing');
+    }
+    close();
+  };
+
+  const applyRowHeight = () => {
+    if (!menu) return;
+    const v = rowHeightValue.trim();
+    editor.update(() => {
+      const rowNode = $getNodeByKey(menu.rowKey);
+      if (!rowNode) return;
+      if (rowNode instanceof AttributedTableStructureNode) {
+        const writable = rowNode.getWritable();
+        const attrs = { ...(writable.__attributes || {}) };
+        const style = parseStyle(attrs.style || '');
+        if (v) style['height'] = `${v}px`; else delete style['height'];
+        writable.__attributes = { ...attrs, style: serializeStyle(style) };
+      }
+    });
+    // Direct DOM update — required for native TableRowNode
+    const rowEl = editor.getElementByKey?.(menu.rowKey);
+    if (rowEl) {
+      if (v) rowEl.style.height = `${v}px`; else rowEl.style.removeProperty('height');
+    }
+    close();
+  };
+
+  const applyColumnWidth = () => {
+    if (!menu) return;
+    const v = colWidthValue.trim();
+    editor.update(() => {
+      const tableNode = $getNodeByKey(menu.tableKey);
+      getAllRows(tableNode).forEach((row) => {
+        const cell = row.getChildren()[menu.colIndex];
+        if (!cell) return;
+        if (cell instanceof AttributedTableStructureNode) {
+          const writable = cell.getWritable();
+          const attrs = { ...(writable.__attributes || {}) };
+          const style = parseStyle(attrs.style || '');
+          if (v) style['width'] = `${v}px`; else delete style['width'];
+          writable.__attributes = { ...attrs, style: serializeStyle(style) };
+        }
+      });
+    });
+    // Direct DOM update — required for native TableCellNode
+    const tableEl = lastCellRef.current?.closest('table');
+    if (tableEl) {
+      tableEl.querySelectorAll('tr').forEach((tr) => {
+        const cell = tr.cells[menu.colIndex];
+        if (cell) {
+          if (v) cell.style.width = `${v}px`; else cell.style.removeProperty('width');
+        }
+      });
     }
     close();
   };
@@ -911,6 +976,80 @@ export default function TableContextMenuPlugin() {
                 <button className="lctm-width-apply" onClick={applyCellSpacing}>
                   Apply
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Row Height submenu */}
+          <div className="lctm-has-sub">
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openSubmenu === 'rowheight'}
+              data-submenu="rowheight"
+              className="lctm-item"
+              onClick={() => setOpenSubmenu(openSubmenu === 'rowheight' ? null : 'rowheight')}
+            >
+              <span>Row Height</span>
+              <span className="lctm-arrow" aria-hidden="true">▶</span>
+            </button>
+            <div
+              role="menu"
+              aria-label="Row Height"
+              data-submenu-panel="rowheight"
+              className={`lctm-submenu lctm-width-panel${openSubmenu === 'rowheight' ? ' lctm-submenu-open' : ''}`}
+            >
+              <div className="lctm-width-row">
+                <input
+                  type="number"
+                  min="1"
+                  value={rowHeightValue}
+                  onChange={(e) => setRowHeightValue(e.target.value)}
+                  className="lctm-width-input"
+                  aria-label="Row height in pixels"
+                  placeholder="auto"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="lctm-width-pct" aria-hidden="true">px</span>
+                <button className="lctm-width-apply" onClick={applyRowHeight}>Apply</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Column Width submenu */}
+          <div className="lctm-has-sub">
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={openSubmenu === 'colwidth'}
+              data-submenu="colwidth"
+              className="lctm-item"
+              onClick={() => setOpenSubmenu(openSubmenu === 'colwidth' ? null : 'colwidth')}
+            >
+              <span>Column Width</span>
+              <span className="lctm-arrow" aria-hidden="true">▶</span>
+            </button>
+            <div
+              role="menu"
+              aria-label="Column Width"
+              data-submenu-panel="colwidth"
+              className={`lctm-submenu lctm-width-panel${openSubmenu === 'colwidth' ? ' lctm-submenu-open' : ''}`}
+            >
+              <div className="lctm-width-row">
+                <input
+                  type="number"
+                  min="1"
+                  value={colWidthValue}
+                  onChange={(e) => setColWidthValue(e.target.value)}
+                  className="lctm-width-input"
+                  aria-label="Column width in pixels"
+                  placeholder="auto"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="lctm-width-pct" aria-hidden="true">px</span>
+                <button className="lctm-width-apply" onClick={applyColumnWidth}>Apply</button>
               </div>
             </div>
           </div>
