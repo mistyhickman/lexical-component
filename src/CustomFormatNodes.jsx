@@ -12,6 +12,7 @@
 
 import React from 'react';
 import { ElementNode, DecoratorNode, $applyNodeReplacement, $createParagraphNode } from 'lexical';
+import { sanitizeHtml } from './sanitize';
 
 // =====================================================================
 // AddressNode — wraps content in an <address> HTML element
@@ -644,7 +645,7 @@ export class StyleSheetNode extends DecoratorNode {
   // Helper: parse __styleOuterHtml back into a real DOM element
   _createElement() {
     const div = document.createElement('div');
-    div.innerHTML = this.__styleOuterHtml;
+    div.innerHTML = sanitizeHtml(this.__styleOuterHtml);
     return div.firstChild || document.createElement('style');
   }
 
@@ -743,7 +744,7 @@ export class RawHtmlNode extends DecoratorNode {
 
   exportDOM() {
     const container = document.createElement('div');
-    container.innerHTML = this.__rawHtml;
+    container.innerHTML = sanitizeHtml(this.__rawHtml);
     return { element: container.firstElementChild || container };
   }
 
@@ -778,7 +779,7 @@ export class RawHtmlNode extends DecoratorNode {
     // block wrapper that can distort table cell alignment and widths.
     return React.createElement('div', {
       style: { display: 'contents' },
-      dangerouslySetInnerHTML: { __html: this.__rawHtml },
+      dangerouslySetInnerHTML: { __html: sanitizeHtml(this.__rawHtml) },
     });
   }
 }

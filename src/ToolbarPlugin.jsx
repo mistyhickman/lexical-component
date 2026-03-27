@@ -12,6 +12,7 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import styled from '@emotion/styled';
+import { sanitizeStyleHtml } from './sanitize';
 
 // Lexical commands - These are like "actions" you can send to the editor
 // Commands follow a pattern: you dispatch (send) them and the editor responds
@@ -1201,7 +1202,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
       // Selectors are scoped to .lexical-content-editable for the same reason
       // as LoadContentPlugin — see scopeStylesForEditor in LexicalEditor.jsx.
       if (styleContainerRef?.current) {
-        styleContainerRef.current.innerHTML = scopeStylesForEditor(stylesHtml);
+        styleContainerRef.current.innerHTML = sanitizeStyleHtml(scopeStylesForEditor(stylesHtml));
       }
 
       // Write the full source HTML to the hidden field immediately as a safety
