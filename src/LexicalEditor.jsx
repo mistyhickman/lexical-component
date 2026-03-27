@@ -728,13 +728,6 @@ export default function LexicalEditor({
         <div
           className="lexical-editor-wrapper"
           onFocus={() => setIsExpanded(true)}
-          onBlur={(e) => {
-            // Only collapse when focus leaves the entire wrapper (not when
-            // moving between toolbar buttons and the editor content area)
-            if (!e.currentTarget.contains(e.relatedTarget)) {
-              setIsExpanded(false);
-            }
-          }}
         >
 
           {/* Our custom toolbar with formatting buttons */}
