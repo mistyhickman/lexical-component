@@ -21,7 +21,6 @@ import { LexicalComposer } from '@lexical/react/LexicalComposer'; // Main wrappe
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'; // Enables rich text editing
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'; // The actual editable area
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'; // Enables undo/redo
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'; // Auto-focuses editor on load
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'; // Enables bullet and numbered lists
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'; // Enables clickable check lists
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin'; // Tab key for indentation
@@ -792,7 +791,6 @@ export default function LexicalEditor({
             <ListPlugin /> {/* Bullet and numbered lists */}
             <CheckListPlugin /> {/* Clickable check lists */}
             <TabIndentationPlugin /> {/* Tab key to indent */}
-            <AutoFocusPlugin /> {/* Focus editor when page loads */}
             <TablePlugin hasCellMerge={true} hasCellBackgroundColor={false} /> {/* Table functionality */}
             <HorizontalRulePlugin /> {/* Horizontal rule (<hr>) support */}
             <TableContextMenuPlugin /> {/* Right-click context menu for table cells */}
