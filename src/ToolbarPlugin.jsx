@@ -77,7 +77,7 @@ import SourceCodePlugin from './SourceCodePlugin';
 
 // HTML cleanup and style-extraction utilities
 import { cleanExportedHtml, extractAndStripStyles, scopeStylesForEditor } from './LexicalEditor';
-import { sanitizeStyleHtml } from './sanitize';
+import { sanitizeHtml, sanitizeStyleHtml } from './sanitize';
 
 // Footnote dialog
 import { FootnoteDialog } from './FootnotesPlugin';
@@ -1192,8 +1192,11 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
    */
   const applySourceChanges = () => {
     try {
-      // Separate <style> blocks from the rest of the HTML
-      const { stylesHtml, strippedHtml } = extractAndStripStyles(sourceHTML);
+      // Separate <style> blocks from the rest of the HTML, then sanitize
+      // the content portion to strip scripts and event handlers before it
+      // is loaded into Lexical or written to the hidden field.
+      const { stylesHtml, strippedHtml: rawStrippedHtml } = extractAndStripStyles(sourceHTML);
+      const strippedHtml = sanitizeHtml(rawStrippedHtml);
 
       // Persist styles in the shared ref so SyncContentPlugin can re-attach them
       if (extraStylesRef) extraStylesRef.current = stylesHtml;
@@ -1211,7 +1214,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
       const fieldId = documents?.[0]?.id;
       if (fieldId) {
         const hiddenField = document.getElementById(fieldId);
-        if (hiddenField) hiddenField.value = sourceHTML;
+        if (hiddenField) hiddenField.value = stylesHtml + strippedHtml;
       }
 
       // Load the style-free HTML into Lexical.
