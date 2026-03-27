@@ -22,6 +22,7 @@
     "@lexical/table": "^0.12.6",
     "@lexical/utils": "^0.12.2",
     "@mui/material": "^7.3.7",
+    "dompurify": "^3.3.3",
     "lexical": "^0.12.2",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",

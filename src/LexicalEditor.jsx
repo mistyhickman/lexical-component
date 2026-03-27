@@ -11,6 +11,7 @@
 
 // React core imports
 import React, { useEffect, useRef, useState } from 'react';
+import { sanitizeStyleHtml } from './sanitize';
 
 // CSS imports
 import './LexicalTable.css';
@@ -196,7 +197,7 @@ function LoadContentPlugin({ documents, extraStylesRef, styleContainerRef }) {
     //   (a) only apply inside the editor, not to the rest of the host page, and
     //   (b) win over unscoped application CSS due to the higher specificity.
     if (styleContainerRef?.current) {
-      styleContainerRef.current.innerHTML = scopeStylesForEditor(stylesHtml);
+      styleContainerRef.current.innerHTML = sanitizeStyleHtml(scopeStylesForEditor(stylesHtml));
     }
 
     // Load the style-free HTML into Lexical

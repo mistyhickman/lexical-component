@@ -32,6 +32,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { sanitizeHtml } from './sanitize';
 import {
   DecoratorNode,
   $applyNodeReplacement,
@@ -280,9 +281,11 @@ export class FootnoteSectionNode extends DecoratorNode {
     if (!disableHeader) {
       const header = document.createElement('header');
       const tmp = document.createElement('div');
-      tmp.innerHTML = (Array.isArray(headerEls) ? headerEls[0] : `<${headerEls}>`)
+      tmp.innerHTML = sanitizeHtml(
+        (Array.isArray(headerEls) ? headerEls[0] : `<${headerEls}>`)
         + title
-        + (Array.isArray(headerEls) ? headerEls[1] : `</${headerEls}>`);
+        + (Array.isArray(headerEls) ? headerEls[1] : `</${headerEls}>`)
+      );
       while (tmp.firstChild) header.appendChild(tmp.firstChild);
       section.appendChild(header);
     }
@@ -303,7 +306,7 @@ export class FootnoteSectionNode extends DecoratorNode {
       li.appendChild(sup);
 
       const cite = document.createElement('cite');
-      cite.innerHTML = fn.text || '';
+      cite.innerHTML = sanitizeHtml(fn.text || '');
       li.appendChild(cite);
 
       ol.appendChild(li);
@@ -538,7 +541,7 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
         style={{ background: '#eee', padding: '1px 15px 10px', marginTop: '12px' }}
       >
         {!disableHeader && (
-          <div dangerouslySetInnerHTML={{ __html: headerHtml }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(headerHtml) }} />
         )}
         <ol style={{ paddingLeft: '20px', margin: '4px 0' }}>
           {(footnotes || []).map((fn, idx) => (
@@ -547,7 +550,7 @@ function FootnoteSectionView({ footnotes, config = {}, editor, nodeKey }) {
                 <span style={{ flex: 1 }}>
                   <cite
                     style={{ fontStyle: 'normal' }}
-                    dangerouslySetInnerHTML={{ __html: fn.text || '' }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(fn.text || '') }}
                   />
                 </span>
                 <button
@@ -884,7 +887,7 @@ export function FootnoteDialog({ isOpen, onClose, footnotesConfig = {} }) {
                       />
                       <span style={{ fontSize: '14px' }}>
                         <strong>[{idx + 1}]</strong>{' '}
-                        <span dangerouslySetInnerHTML={{ __html: fn.text }} />
+                        <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(fn.text) }} />
                       </span>
                     </label>
                   </li>
