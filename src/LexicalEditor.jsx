@@ -726,7 +726,7 @@ export default function LexicalEditor({
 
         <div
           className="lexical-editor-wrapper"
-          onFocus={() => setIsExpanded(true)}
+          onClick={() => setIsExpanded(true)}
         >
 
           {/* Our custom toolbar with formatting buttons */}
