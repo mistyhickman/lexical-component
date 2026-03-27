@@ -77,6 +77,7 @@ import SourceCodePlugin from './SourceCodePlugin';
 
 // HTML cleanup and style-extraction utilities
 import { cleanExportedHtml, extractAndStripStyles, scopeStylesForEditor } from './LexicalEditor';
+import { sanitizeStyleHtml } from './sanitize';
 
 // Footnote dialog
 import { FootnoteDialog } from './FootnotesPlugin';
@@ -1201,7 +1202,7 @@ export default function ToolbarPlugin({ toolList, inline = true, buildLetterOnCo
       // Selectors are scoped to .lexical-content-editable for the same reason
       // as LoadContentPlugin — see scopeStylesForEditor in LexicalEditor.jsx.
       if (styleContainerRef?.current) {
-        styleContainerRef.current.innerHTML = scopeStylesForEditor(stylesHtml);
+        styleContainerRef.current.innerHTML = sanitizeStyleHtml(scopeStylesForEditor(stylesHtml));
       }
 
       // Write the full source HTML to the hidden field immediately as a safety
