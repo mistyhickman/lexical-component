@@ -23,8 +23,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getNodeByKey, $createParagraphNode, $getSelection } from 'lexical';
-import { $createTableRowNode, $createTableCellNode, $isTableRowNode, TableCellHeaderStates, $isGridSelection, $isTableCellNode } from '@lexical/table';
+import { $getNodeByKey, $createParagraphNode } from 'lexical';
+import { $createTableRowNode, $createTableCellNode, $isTableRowNode, TableCellHeaderStates, $isTableCellNode } from '@lexical/table';
 import { $createAttributedTableStructureNode, AttributedTableStructureNode } from './CustomFormatNodes';
 import './TableContextMenu.css';
 
@@ -91,6 +91,29 @@ function getDOMNodeLexicalKey(el) {
   return null;
 }
 
+/** Returns all td/th elements that fall inside the bounding rectangle
+ *  formed by startCell and endCell (both must belong to the same table). */
+function getCellsInRect(tableEl, startCell, endCell) {
+  const rows = Array.from(tableEl.querySelectorAll('tr'));
+  let sr = -1, sc = -1, er = -1, ec = -1;
+  rows.forEach((row, ri) => {
+    Array.from(row.querySelectorAll('td,th')).forEach((cell, ci) => {
+      if (cell === startCell) { sr = ri; sc = ci; }
+      if (cell === endCell)   { er = ri; ec = ci; }
+    });
+  });
+  if (sr < 0 || er < 0) return [startCell];
+  const minR = Math.min(sr, er), maxR = Math.max(sr, er);
+  const minC = Math.min(sc, ec), maxC = Math.max(sc, ec);
+  const result = [];
+  rows.slice(minR, maxR + 1).forEach((row) => {
+    Array.from(row.querySelectorAll('td,th')).slice(minC, maxC + 1).forEach((cell) => {
+      result.push(cell);
+    });
+  });
+  return result;
+}
+
 // ─── Plugin ──────────────────────────────────────────────────────────────────
 
 export default function TableContextMenuPlugin() {
@@ -116,6 +139,11 @@ export default function TableContextMenuPlugin() {
   const triggerRef = useRef(null);    // ref to the ▾ trigger button DOM element
   const lastCellRef = useRef(null);   // tracks hovered cell without causing extra renders
   const menuStateRef = useRef(null);  // mirrors `menu` without causing effect re-runs
+
+  // ── Drag-selection state ──────────────────────────────────────────────────
+  const cellDragStartRef = useRef(null);   // td/th where the drag began
+  const isDraggingRef = useRef(false);     // true once mouse has moved to a different cell
+  const selectedCellElsRef = useRef(new Set()); // highlighted td/th DOM elements
 
   // Keep menuStateRef in sync so the global mousemove handler can read it
   useEffect(() => { menuStateRef.current = menu; }, [menu]);
@@ -179,6 +207,91 @@ export default function TableContextMenuPlugin() {
     return () => window.removeEventListener('scroll', hide, true);
   }, []);
 
+  // ── Drag cell selection ───────────────────────────────────────────────────
+
+  const clearCellSelection = useCallback(() => {
+    selectedCellElsRef.current.forEach((el) => el.classList.remove('lctm-cell-selected'));
+    selectedCellElsRef.current.clear();
+  }, []);
+
+  useEffect(() => {
+    const root = editor.getRootElement();
+    if (!root) return;
+
+    const getCellEl = (target) => {
+      let el = target;
+      while (el && el !== root) {
+        if (el.tagName === 'TD' || el.tagName === 'TH') return el;
+        el = el.parentElement;
+      }
+      return null;
+    };
+
+    const onMouseDown = (e) => {
+      // Ignore clicks on the trigger / menu portals (outside root)
+      if (!root.contains(e.target)) return;
+      const cell = getCellEl(e.target);
+      if (!cell) {
+        // Clicked inside editor but not on a cell — clear selection
+        if (!menuStateRef.current) clearCellSelection();
+        cellDragStartRef.current = null;
+        return;
+      }
+      // Mark drag start; selection highlight applied only once mouse moves to another cell
+      cellDragStartRef.current = cell;
+      isDraggingRef.current = false;
+    };
+
+    const onMouseMove = (e) => {
+      if (!cellDragStartRef.current || !(e.buttons & 1)) {
+        cellDragStartRef.current = null;
+        return;
+      }
+      const currentCell = getCellEl(e.target);
+      if (!currentCell) return;
+      const startTable = cellDragStartRef.current.closest('table');
+      const curTable   = currentCell.closest('table');
+      if (!startTable || startTable !== curTable) return;
+
+      // Only enter drag mode once the mouse actually moves to a different cell
+      if (!isDraggingRef.current) {
+        if (currentCell === cellDragStartRef.current) return;
+        // First cross-cell move — kill any text selection the browser built up
+        // and lock user-select so it can't restart while the button stays held
+        isDraggingRef.current = true;
+        window.getSelection()?.removeAllRanges();
+        root.style.userSelect = 'none';
+      }
+
+      // Highlight the rectangle from start to current cell
+      const cells = getCellsInRect(startTable, cellDragStartRef.current, currentCell);
+      selectedCellElsRef.current.forEach((el) => el.classList.remove('lctm-cell-selected'));
+      selectedCellElsRef.current.clear();
+      cells.forEach((el) => {
+        el.classList.add('lctm-cell-selected');
+        selectedCellElsRef.current.add(el);
+      });
+    };
+
+    const onMouseUp = () => {
+      root.style.userSelect = '';  // always restore
+      if (!isDraggingRef.current && !menuStateRef.current) {
+        clearCellSelection();
+      }
+      cellDragStartRef.current = null;
+      isDraggingRef.current = false;
+    };
+
+    root.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      root.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [editor, clearCellSelection]);
+
   // ── Open menu on trigger click ────────────────────────────────────────────
 
   const openMenu = useCallback(() => {
@@ -191,6 +304,7 @@ export default function TableContextMenuPlugin() {
     let currentRowHeight = '', currentColWidth = '';
     let gridSelectionCellKeys = null;
     let isMergedCell = false;
+    let isMergeValid = false;
 
     // Lexical stores the node key on each DOM element as __lexicalKey_<editorKey>.
     // We read it directly then look up via $getNodeByKey inside editorState.read(),
@@ -240,16 +354,13 @@ export default function TableContextMenuPlugin() {
       const cellStyleObj = parseStyle(cellNode.__attributes?.style || '');
       currentColWidth = cellStyleObj['width']?.replace('px', '').trim() || '';
 
-      // GridSelection = multi-cell selection (native TableNode only)
-      if ($isTableCellNode(cellNode)) {
-        const selection = $getSelection();
-        if ($isGridSelection(selection) && selection.gridKey === tableKey) {
-          const cellNodes = selection.getNodes().filter($isTableCellNode);
-          if (cellNodes.length >= 2) {
-            gridSelectionCellKeys = cellNodes.map((n) => n.getKey());
-          }
-        }
-        // Is this cell already merged?
+      // Is this cell already merged? Works for both node types.
+      if (cellNode instanceof AttributedTableStructureNode) {
+        const cellAttrs = cellNode.__attributes || {};
+        const cs = parseInt(cellAttrs.colspan || '1', 10);
+        const rs = parseInt(cellAttrs.rowspan || '1', 10);
+        isMergedCell = cs > 1 || rs > 1;
+      } else if ($isTableCellNode(cellNode)) {
         const cs = cellNode.__colSpan ?? 1;
         const rs = cellNode.__rowSpan ?? 1;
         isMergedCell = cs > 1 || rs > 1;
@@ -257,6 +368,36 @@ export default function TableContextMenuPlugin() {
     });
 
     if (!rowKey || !tableKey) return;
+
+    // Use DOM-tracked drag selection for merge validity — works for both table types.
+    const selEls = Array.from(selectedCellElsRef.current);
+    if (selEls.length >= 2) {
+      const tableEl = cellEl.closest('table');
+      if (selEls.every((el) => el.closest('table') === tableEl)) {
+        gridSelectionCellKeys = selEls.map((el) => getDOMNodeLexicalKey(el)).filter(Boolean);
+
+        // Validate contiguous rectangle via DOM row/col positions
+        const tableRows = Array.from(tableEl.querySelectorAll('tr'));
+        const positions = selEls.map((c) => {
+          let ri = -1, ci = -1;
+          tableRows.forEach((row, rowIdx) => {
+            Array.from(row.querySelectorAll('td,th')).forEach((cell, colIdx) => {
+              if (cell === c) { ri = rowIdx; ci = colIdx; }
+            });
+          });
+          return { ri, ci };
+        }).filter((p) => p.ri >= 0 && p.ci >= 0);
+
+        if (positions.length === selEls.length) {
+          const minRi = Math.min(...positions.map((p) => p.ri));
+          const maxRi = Math.max(...positions.map((p) => p.ri));
+          const minCi = Math.min(...positions.map((p) => p.ci));
+          const maxCi = Math.max(...positions.map((p) => p.ci));
+          isMergeValid = positions.length === (maxRi - minRi + 1) * (maxCi - minCi + 1);
+        }
+      }
+    }
+
     setWidthValue(currentWidth);
     setBorderValue(currentBorder);
     setCellPaddingValue(currentCellPadding);
@@ -264,7 +405,7 @@ export default function TableContextMenuPlugin() {
     setRowHeightValue(currentRowHeight);
     setColWidthValue(currentColWidth);
     const rect = cellEl.getBoundingClientRect();
-    setMenu({ x: rect.right, y: rect.top + 18, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergedCell });
+    setMenu({ x: rect.right, y: rect.top + 18, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergedCell, isMergeValid });
   }, [editor]);
 
   // ── Close on outside click or Escape ─────────────────────────────────────
@@ -663,26 +804,27 @@ export default function TableContextMenuPlugin() {
   };
 
   const mergeCells = () => {
-    if (!menu?.gridSelectionCellKeys?.length) return;
+    if (!menu?.isMergeValid) return;
+
+    const cellKeys = Array.from(selectedCellElsRef.current)
+      .map((el) => getDOMNodeLexicalKey(el))
+      .filter(Boolean);
+    if (cellKeys.length < 2) return;
+
     editor.update(() => {
       const tableNode = $getNodeByKey(menu.tableKey);
       if (!tableNode) return;
       const rows = getAllRows(tableNode);
 
-      const selectedCells = menu.gridSelectionCellKeys
-        .map((k) => $getNodeByKey(k))
-        .filter(Boolean)
-        .filter($isTableCellNode);
+      const selectedCells = cellKeys.map((k) => $getNodeByKey(k)).filter(Boolean);
       if (selectedCells.length < 2) return;
 
-      // Map each cell to its row/col position
       const positions = selectedCells.map((cell) => {
         const row = cell.getParent();
         const ri = rows.findIndex((r) => r.getKey() === row.getKey());
         const ci = row.getChildren().findIndex((c) => c.getKey() === cell.getKey());
         return { cell, ri, ci };
       }).filter((p) => p.ri >= 0 && p.ci >= 0);
-
       if (positions.length < 2) return;
 
       const minRow = Math.min(...positions.map((p) => p.ri));
@@ -694,8 +836,10 @@ export default function TableContextMenuPlugin() {
       if (!topLeft) return;
 
       const keeper = topLeft.cell.getWritable();
+      const colSpan = maxCol - minCol + 1;
+      const rowSpan = maxRow - minRow + 1;
 
-      // Move non-empty content from other cells into the keeper
+      // Move non-empty content from merged cells into keeper
       positions.forEach(({ cell }) => {
         if (cell.getKey() === topLeft.cell.getKey()) return;
         cell.getChildren().forEach((child) => {
@@ -704,9 +848,20 @@ export default function TableContextMenuPlugin() {
         cell.remove();
       });
 
-      keeper.setColSpan(maxCol - minCol + 1);
-      keeper.setRowSpan(maxRow - minRow + 1);
+      // Apply spans — AttributedTableStructureNode stores in __attributes;
+      // native TableCellNode uses setColSpan/setRowSpan.
+      if (keeper instanceof AttributedTableStructureNode) {
+        const attrs = { ...(keeper.__attributes || {}) };
+        if (colSpan > 1) attrs.colspan = String(colSpan); else delete attrs.colspan;
+        if (rowSpan > 1) attrs.rowspan = String(rowSpan); else delete attrs.rowspan;
+        keeper.__attributes = attrs;
+      } else if ($isTableCellNode(keeper)) {
+        keeper.setColSpan(colSpan);
+        keeper.setRowSpan(rowSpan);
+      }
     });
+
+    clearCellSelection();
     close();
   };
 
@@ -1059,9 +1214,15 @@ export default function TableContextMenuPlugin() {
           <button role="menuitem" className="lctm-item" onClick={toggleCellHeader}>Toggle Column Header</button>
           <button role="menuitem" className="lctm-item" onClick={toggleRowHeader}>Toggle Row Header</button>
 
-          {menu?.gridSelectionCellKeys?.length >= 2 && (
-            <button role="menuitem" className="lctm-item" onClick={mergeCells}>Merge Cells</button>
-          )}
+          <button
+            role="menuitem"
+            className={`lctm-item${menu?.isMergeValid ? '' : ' lctm-item--disabled'}`}
+            onClick={menu?.isMergeValid ? mergeCells : undefined}
+            aria-disabled={!menu?.isMergeValid}
+            title={!menu?.isMergeValid ? 'Select 2 or more adjacent cells to merge' : undefined}
+          >
+            Merge Cells
+          </button>
           {menu?.isMergedCell && (
             <button role="menuitem" className="lctm-item" onClick={unmergeCells}>Unmerge Cell</button>
           )}

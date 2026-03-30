@@ -89,6 +89,20 @@
   outline-color: #d93025;
 }
 
+.lctm-item.lctm-item--disabled {
+  color: #aaa;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Drag-selected table cells */
+td.lctm-cell-selected,
+th.lctm-cell-selected {
+  background-color: #c8d8f8 !important;
+  outline: 2px solid #1a73e8;
+  outline-offset: -2px;
+}
+
 .lctm-sep {
   height: 1px;
   background: #e8e8e8;
