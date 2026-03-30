@@ -354,6 +354,7 @@ function ExternalAPIPlugin({ documents }) {
  * @param {Object} props
  * @param {boolean} props.editable - True if editor should be editable
  */
+
 function EditablePlugin({ editable }) {
   const [editor] = useLexicalComposerContext();
 

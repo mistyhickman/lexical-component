@@ -600,6 +600,13 @@ export class AttributedTableStructureNode extends ElementNode {
     return node;
   }
 
+  // Returning true for td/th makes Lexical treat the cell as a selection
+  // boundary, preventing Delete/Backspace from merging content across cells.
+  // This mirrors the behaviour of Lexical's built-in TableCellNode.
+  isShadowRoot() {
+    return this.__tagName === 'td' || this.__tagName === 'th';
+  }
+
   exportJSON() {
     return {
       ...super.exportJSON(),
