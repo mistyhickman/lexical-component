@@ -861,9 +861,9 @@ export default function TableContextMenuPlugin() {
   // Recompute cell rect on every render so it stays fresh after scrolling
   const cellRect = hoveredCellEl ? hoveredCellEl.getBoundingClientRect() : null;
 
-  // Clamp menu to viewport
+  // Clamp menu to viewport (main menu is now ~160px tall with 3 groups + separator + merge)
   const menuLeft = menu ? Math.min(menu.x - 210, window.innerWidth - 225) : 0;
-  const menuTop  = menu ? Math.min(menu.y,        window.innerHeight - 390) : 0;
+  const menuTop  = menu ? Math.min(menu.y,        window.innerHeight - 170) : 0;
 
   return createPortal(
     <>
@@ -894,266 +894,274 @@ export default function TableContextMenuPlugin() {
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={handleMenuKeyDown}
         >
-          {/* Align Table submenu */}
+          {/* ── Table Properties ── */}
           <div className="lctm-has-sub">
             <button
               role="menuitem"
               aria-haspopup="menu"
-              aria-expanded={openSubmenu === 'align'}
-              data-submenu="align"
+              aria-expanded={openSubmenu === 'tableprops'}
+              data-submenu="tableprops"
               className="lctm-item"
-              onClick={() => setOpenSubmenu(openSubmenu === 'align' ? null : 'align')}
+              onClick={() => setOpenSubmenu(openSubmenu === 'tableprops' ? null : 'tableprops')}
             >
-              <span>Align Table</span>
+              <span>Table Properties</span>
               <span className="lctm-arrow" aria-hidden="true">▶</span>
             </button>
             <div
               role="menu"
-              aria-label="Align Table"
-              data-submenu-panel="align"
-              className={`lctm-submenu${openSubmenu === 'align' ? ' lctm-submenu-open' : ''}`}
+              aria-label="Table Properties"
+              data-submenu-panel="tableprops"
+              className={`lctm-submenu${openSubmenu === 'tableprops' ? ' lctm-submenu-open' : ''}`}
             >
-              <button role="menuitem" className="lctm-item" onClick={() => alignTable('left')}>Left</button>
-              <button role="menuitem" className="lctm-item" onClick={() => alignTable('center')}>Center</button>
-              <button role="menuitem" className="lctm-item" onClick={() => alignTable('right')}>Right</button>
-            </div>
-          </div>
-
-          {/* Table Width submenu */}
-          <div className="lctm-has-sub">
-            <button
-              role="menuitem"
-              aria-haspopup="menu"
-              aria-expanded={openSubmenu === 'width'}
-              data-submenu="width"
-              className="lctm-item"
-              onClick={() => setOpenSubmenu(openSubmenu === 'width' ? null : 'width')}
-            >
-              <span>Table Width</span>
-              <span className="lctm-arrow" aria-hidden="true">▶</span>
-            </button>
-            <div
-              role="menu"
-              aria-label="Table Width"
-              data-submenu-panel="width"
-              className={`lctm-submenu lctm-width-panel${openSubmenu === 'width' ? ' lctm-submenu-open' : ''}`}
-            >
-              <div className="lctm-width-row">
-                <input
-                  type="number"
-                  min="1"
-                  max="200"
-                  value={widthValue}
-                  onChange={(e) => setWidthValue(e.target.value)}
-                  className="lctm-width-input"
-                  aria-label="Table width percentage"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="lctm-width-pct" aria-hidden="true">%</span>
-                <button className="lctm-width-apply" onClick={applyTableWidth}>
-                  Apply
+              {/* Align Table */}
+              <div className="lctm-has-sub">
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openSubmenu === 'align'}
+                  data-submenu="align"
+                  className="lctm-item"
+                  onClick={() => setOpenSubmenu(openSubmenu === 'align' ? null : 'align')}
+                >
+                  <span>Align Table</span>
+                  <span className="lctm-arrow" aria-hidden="true">▶</span>
                 </button>
+                <div
+                  role="menu"
+                  aria-label="Align Table"
+                  data-submenu-panel="align"
+                  className={`lctm-submenu${openSubmenu === 'align' ? ' lctm-submenu-open' : ''}`}
+                >
+                  <button role="menuitem" className="lctm-item" onClick={() => alignTable('left')}>Left</button>
+                  <button role="menuitem" className="lctm-item" onClick={() => alignTable('center')}>Center</button>
+                  <button role="menuitem" className="lctm-item" onClick={() => alignTable('right')}>Right</button>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Border Size submenu */}
-          <div className="lctm-has-sub">
-            <button
-              role="menuitem"
-              aria-haspopup="menu"
-              aria-expanded={openSubmenu === 'border'}
-              data-submenu="border"
-              className="lctm-item"
-              onClick={() => setOpenSubmenu(openSubmenu === 'border' ? null : 'border')}
-            >
-              <span>Border Size</span>
-              <span className="lctm-arrow" aria-hidden="true">▶</span>
-            </button>
-            <div
-              role="menu"
-              aria-label="Border Size"
-              data-submenu-panel="border"
-              className={`lctm-submenu lctm-width-panel${openSubmenu === 'border' ? ' lctm-submenu-open' : ''}`}
-            >
-              <div className="lctm-width-row">
-                <input
-                  type="number"
-                  min="0"
-                  value={borderValue}
-                  onChange={(e) => setBorderValue(e.target.value)}
-                  className="lctm-width-input"
-                  aria-label="Table border size in pixels"
-                  placeholder="0"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="lctm-width-pct" aria-hidden="true">px</span>
-                <button className="lctm-width-apply" onClick={applyBorder}>
-                  Apply
+              {/* Table Width */}
+              <div className="lctm-has-sub">
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openSubmenu === 'width'}
+                  data-submenu="width"
+                  className="lctm-item"
+                  onClick={() => setOpenSubmenu(openSubmenu === 'width' ? null : 'width')}
+                >
+                  <span>Table Width</span>
+                  <span className="lctm-arrow" aria-hidden="true">▶</span>
                 </button>
+                <div
+                  role="menu"
+                  aria-label="Table Width"
+                  data-submenu-panel="width"
+                  className={`lctm-submenu lctm-width-panel${openSubmenu === 'width' ? ' lctm-submenu-open' : ''}`}
+                >
+                  <div className="lctm-width-row">
+                    <input type="number" min="1" max="200" value={widthValue} onChange={(e) => setWidthValue(e.target.value)} className="lctm-width-input" aria-label="Table width percentage" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} />
+                    <span className="lctm-width-pct" aria-hidden="true">%</span>
+                    <button className="lctm-width-apply" onClick={applyTableWidth}>Apply</button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Cell Padding submenu */}
-          <div className="lctm-has-sub">
-            <button
-              role="menuitem"
-              aria-haspopup="menu"
-              aria-expanded={openSubmenu === 'cellpadding'}
-              data-submenu="cellpadding"
-              className="lctm-item"
-              onClick={() => setOpenSubmenu(openSubmenu === 'cellpadding' ? null : 'cellpadding')}
-            >
-              <span>Cell Padding</span>
-              <span className="lctm-arrow" aria-hidden="true">▶</span>
-            </button>
-            <div
-              role="menu"
-              aria-label="Cell Padding"
-              data-submenu-panel="cellpadding"
-              className={`lctm-submenu lctm-width-panel${openSubmenu === 'cellpadding' ? ' lctm-submenu-open' : ''}`}
-            >
-              <div className="lctm-width-row">
-                <input
-                  type="number"
-                  min="0"
-                  value={cellPaddingValue}
-                  onChange={(e) => setCellPaddingValue(e.target.value)}
-                  className="lctm-width-input"
-                  aria-label="Table cell padding in pixels"
-                  placeholder="0"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="lctm-width-pct" aria-hidden="true">px</span>
-                <button className="lctm-width-apply" onClick={applyCellPadding}>
-                  Apply
+              {/* Border Size */}
+              <div className="lctm-has-sub">
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openSubmenu === 'border'}
+                  data-submenu="border"
+                  className="lctm-item"
+                  onClick={() => setOpenSubmenu(openSubmenu === 'border' ? null : 'border')}
+                >
+                  <span>Border Size</span>
+                  <span className="lctm-arrow" aria-hidden="true">▶</span>
                 </button>
+                <div
+                  role="menu"
+                  aria-label="Border Size"
+                  data-submenu-panel="border"
+                  className={`lctm-submenu lctm-width-panel${openSubmenu === 'border' ? ' lctm-submenu-open' : ''}`}
+                >
+                  <div className="lctm-width-row">
+                    <input type="number" min="0" value={borderValue} onChange={(e) => setBorderValue(e.target.value)} className="lctm-width-input" aria-label="Table border size in pixels" placeholder="0" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} />
+                    <span className="lctm-width-pct" aria-hidden="true">px</span>
+                    <button className="lctm-width-apply" onClick={applyBorder}>Apply</button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Cell Spacing submenu */}
-          <div className="lctm-has-sub">
-            <button
-              role="menuitem"
-              aria-haspopup="menu"
-              aria-expanded={openSubmenu === 'cellspacing'}
-              data-submenu="cellspacing"
-              className="lctm-item"
-              onClick={() => setOpenSubmenu(openSubmenu === 'cellspacing' ? null : 'cellspacing')}
-            >
-              <span>Cell Spacing</span>
-              <span className="lctm-arrow" aria-hidden="true">▶</span>
-            </button>
-            <div
-              role="menu"
-              aria-label="Cell Spacing"
-              data-submenu-panel="cellspacing"
-              className={`lctm-submenu lctm-width-panel${openSubmenu === 'cellspacing' ? ' lctm-submenu-open' : ''}`}
-            >
-              <div className="lctm-width-row">
-                <input
-                  type="number"
-                  min="0"
-                  value={cellSpacingValue}
-                  onChange={(e) => setCellSpacingValue(e.target.value)}
-                  className="lctm-width-input"
-                  aria-label="Table cell spacing in pixels"
-                  placeholder="0"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="lctm-width-pct" aria-hidden="true">px</span>
-                <button className="lctm-width-apply" onClick={applyCellSpacing}>
-                  Apply
+              {/* Cell Padding */}
+              <div className="lctm-has-sub">
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openSubmenu === 'cellpadding'}
+                  data-submenu="cellpadding"
+                  className="lctm-item"
+                  onClick={() => setOpenSubmenu(openSubmenu === 'cellpadding' ? null : 'cellpadding')}
+                >
+                  <span>Cell Padding</span>
+                  <span className="lctm-arrow" aria-hidden="true">▶</span>
                 </button>
+                <div
+                  role="menu"
+                  aria-label="Cell Padding"
+                  data-submenu-panel="cellpadding"
+                  className={`lctm-submenu lctm-width-panel${openSubmenu === 'cellpadding' ? ' lctm-submenu-open' : ''}`}
+                >
+                  <div className="lctm-width-row">
+                    <input type="number" min="0" value={cellPaddingValue} onChange={(e) => setCellPaddingValue(e.target.value)} className="lctm-width-input" aria-label="Cell padding in pixels" placeholder="0" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} />
+                    <span className="lctm-width-pct" aria-hidden="true">px</span>
+                    <button className="lctm-width-apply" onClick={applyCellPadding}>Apply</button>
+                  </div>
+                </div>
               </div>
+
+              {/* Cell Spacing */}
+              <div className="lctm-has-sub">
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openSubmenu === 'cellspacing'}
+                  data-submenu="cellspacing"
+                  className="lctm-item"
+                  onClick={() => setOpenSubmenu(openSubmenu === 'cellspacing' ? null : 'cellspacing')}
+                >
+                  <span>Cell Spacing</span>
+                  <span className="lctm-arrow" aria-hidden="true">▶</span>
+                </button>
+                <div
+                  role="menu"
+                  aria-label="Cell Spacing"
+                  data-submenu-panel="cellspacing"
+                  className={`lctm-submenu lctm-width-panel${openSubmenu === 'cellspacing' ? ' lctm-submenu-open' : ''}`}
+                >
+                  <div className="lctm-width-row">
+                    <input type="number" min="0" value={cellSpacingValue} onChange={(e) => setCellSpacingValue(e.target.value)} className="lctm-width-input" aria-label="Cell spacing in pixels" placeholder="0" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} />
+                    <span className="lctm-width-pct" aria-hidden="true">px</span>
+                    <button className="lctm-width-apply" onClick={applyCellSpacing}>Apply</button>
+                  </div>
+                </div>
+              </div>
+
+              <div role="separator" className="lctm-sep" />
+              <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteTable}>Delete Table</button>
             </div>
           </div>
 
-          {/* Row Height submenu */}
+          {/* ── Row Options ── */}
           <div className="lctm-has-sub">
             <button
               role="menuitem"
               aria-haspopup="menu"
-              aria-expanded={openSubmenu === 'rowheight'}
-              data-submenu="rowheight"
+              aria-expanded={openSubmenu === 'rowoptions'}
+              data-submenu="rowoptions"
               className="lctm-item"
-              onClick={() => setOpenSubmenu(openSubmenu === 'rowheight' ? null : 'rowheight')}
+              onClick={() => setOpenSubmenu(openSubmenu === 'rowoptions' ? null : 'rowoptions')}
             >
-              <span>Row Height</span>
+              <span>Row Options</span>
               <span className="lctm-arrow" aria-hidden="true">▶</span>
             </button>
             <div
               role="menu"
-              aria-label="Row Height"
-              data-submenu-panel="rowheight"
-              className={`lctm-submenu lctm-width-panel${openSubmenu === 'rowheight' ? ' lctm-submenu-open' : ''}`}
+              aria-label="Row Options"
+              data-submenu-panel="rowoptions"
+              className={`lctm-submenu${openSubmenu === 'rowoptions' ? ' lctm-submenu-open' : ''}`}
             >
-              <div className="lctm-width-row">
-                <input
-                  type="number"
-                  min="1"
-                  value={rowHeightValue}
-                  onChange={(e) => setRowHeightValue(e.target.value)}
-                  className="lctm-width-input"
-                  aria-label="Row height in pixels"
-                  placeholder="auto"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="lctm-width-pct" aria-hidden="true">px</span>
-                <button className="lctm-width-apply" onClick={applyRowHeight}>Apply</button>
+              {/* Row Height */}
+              <div className="lctm-has-sub">
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openSubmenu === 'rowheight'}
+                  data-submenu="rowheight"
+                  className="lctm-item"
+                  onClick={() => setOpenSubmenu(openSubmenu === 'rowheight' ? null : 'rowheight')}
+                >
+                  <span>Row Height</span>
+                  <span className="lctm-arrow" aria-hidden="true">▶</span>
+                </button>
+                <div
+                  role="menu"
+                  aria-label="Row Height"
+                  data-submenu-panel="rowheight"
+                  className={`lctm-submenu lctm-width-panel${openSubmenu === 'rowheight' ? ' lctm-submenu-open' : ''}`}
+                >
+                  <div className="lctm-width-row">
+                    <input type="number" min="1" value={rowHeightValue} onChange={(e) => setRowHeightValue(e.target.value)} className="lctm-width-input" aria-label="Row height in pixels" placeholder="auto" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} />
+                    <span className="lctm-width-pct" aria-hidden="true">px</span>
+                    <button className="lctm-width-apply" onClick={applyRowHeight}>Apply</button>
+                  </div>
+                </div>
               </div>
+
+              <button role="menuitem" className="lctm-item" onClick={toggleRowHeader}>Toggle Row Header</button>
+              <button role="menuitem" className="lctm-item" onClick={() => insertRow('above')}>Insert Row Above</button>
+              <button role="menuitem" className="lctm-item" onClick={() => insertRow('below')}>Insert Row Below</button>
+              <div role="separator" className="lctm-sep" />
+              <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteRow}>Delete Row</button>
             </div>
           </div>
 
-          {/* Column Width submenu */}
+          {/* ── Column Options ── */}
           <div className="lctm-has-sub">
             <button
               role="menuitem"
               aria-haspopup="menu"
-              aria-expanded={openSubmenu === 'colwidth'}
-              data-submenu="colwidth"
+              aria-expanded={openSubmenu === 'columnoptions'}
+              data-submenu="columnoptions"
               className="lctm-item"
-              onClick={() => setOpenSubmenu(openSubmenu === 'colwidth' ? null : 'colwidth')}
+              onClick={() => setOpenSubmenu(openSubmenu === 'columnoptions' ? null : 'columnoptions')}
             >
-              <span>Column Width</span>
+              <span>Column Options</span>
               <span className="lctm-arrow" aria-hidden="true">▶</span>
             </button>
             <div
               role="menu"
-              aria-label="Column Width"
-              data-submenu-panel="colwidth"
-              className={`lctm-submenu lctm-width-panel${openSubmenu === 'colwidth' ? ' lctm-submenu-open' : ''}`}
+              aria-label="Column Options"
+              data-submenu-panel="columnoptions"
+              className={`lctm-submenu${openSubmenu === 'columnoptions' ? ' lctm-submenu-open' : ''}`}
             >
-              <div className="lctm-width-row">
-                <input
-                  type="number"
-                  min="1"
-                  value={colWidthValue}
-                  onChange={(e) => setColWidthValue(e.target.value)}
-                  className="lctm-width-input"
-                  aria-label="Column width in pixels"
-                  placeholder="auto"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <span className="lctm-width-pct" aria-hidden="true">px</span>
-                <button className="lctm-width-apply" onClick={applyColumnWidth}>Apply</button>
+              {/* Column Width */}
+              <div className="lctm-has-sub">
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openSubmenu === 'colwidth'}
+                  data-submenu="colwidth"
+                  className="lctm-item"
+                  onClick={() => setOpenSubmenu(openSubmenu === 'colwidth' ? null : 'colwidth')}
+                >
+                  <span>Column Width</span>
+                  <span className="lctm-arrow" aria-hidden="true">▶</span>
+                </button>
+                <div
+                  role="menu"
+                  aria-label="Column Width"
+                  data-submenu-panel="colwidth"
+                  className={`lctm-submenu lctm-width-panel${openSubmenu === 'colwidth' ? ' lctm-submenu-open' : ''}`}
+                >
+                  <div className="lctm-width-row">
+                    <input type="number" min="1" value={colWidthValue} onChange={(e) => setColWidthValue(e.target.value)} className="lctm-width-input" aria-label="Column width in pixels" placeholder="auto" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} />
+                    <span className="lctm-width-pct" aria-hidden="true">px</span>
+                    <button className="lctm-width-apply" onClick={applyColumnWidth}>Apply</button>
+                  </div>
+                </div>
               </div>
+
+              <button role="menuitem" className="lctm-item" onClick={toggleCellHeader}>Toggle Column Header</button>
+              <button role="menuitem" className="lctm-item" onClick={() => insertColumn('left')}>Insert Column Left</button>
+              <button role="menuitem" className="lctm-item" onClick={() => insertColumn('right')}>Insert Column Right</button>
+              <div role="separator" className="lctm-sep" />
+              <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteColumn}>Delete Column</button>
             </div>
           </div>
 
           <div role="separator" className="lctm-sep" />
 
-          <button role="menuitem" className="lctm-item" onClick={toggleCellHeader}>Toggle Column Header</button>
-          <button role="menuitem" className="lctm-item" onClick={toggleRowHeader}>Toggle Row Header</button>
-
+          {/* Merge Cells — always visible, greyed when selection isn't valid */}
           <button
             role="menuitem"
             className={`lctm-item${menu?.isMergeValid ? '' : ' lctm-item--disabled'}`}
@@ -1163,19 +1171,6 @@ export default function TableContextMenuPlugin() {
           >
             Merge Cells
           </button>
-
-          <div role="separator" className="lctm-sep" />
-
-          <button role="menuitem" className="lctm-item" onClick={() => insertRow('above')}>Insert Row Above</button>
-          <button role="menuitem" className="lctm-item" onClick={() => insertRow('below')}>Insert Row Below</button>
-          <button role="menuitem" className="lctm-item" onClick={() => insertColumn('left')}>Insert Column Left</button>
-          <button role="menuitem" className="lctm-item" onClick={() => insertColumn('right')}>Insert Column Right</button>
-
-          <div role="separator" className="lctm-sep" />
-
-          <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteRow}>Delete Row</button>
-          <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteColumn}>Delete Column</button>
-          <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteTable}>Delete Table</button>
         </div>
       )}
     </>,
