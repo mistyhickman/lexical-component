@@ -23,7 +23,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getNodeByKey, $createParagraphNode } from 'lexical';
+import { $getNodeByKey, $createParagraphNode, $isTextNode, $createTextNode, $isLineBreakNode, $createLineBreakNode } from 'lexical';
 import { $createTableRowNode, $createTableCellNode, $isTableRowNode, TableCellHeaderStates, $isTableCellNode } from '@lexical/table';
 import { $createAttributedTableStructureNode, AttributedTableStructureNode } from './CustomFormatNodes';
 import './TableContextMenu.css';
@@ -112,6 +112,35 @@ function getCellsInRect(tableEl, startCell, endCell) {
     });
   });
   return result;
+}
+
+/** Recursively deep-clones a Lexical node tree, producing new nodes with new
+ *  keys.  Handles AttributedTableStructureNode (tag + attrs), TextNode (text +
+ *  format + style), LineBreakNode, and falls back to a plain paragraph for any
+ *  other ElementNode so cell content is always preserved. */
+function deepCloneLexicalNode(node) {
+  if (node instanceof AttributedTableStructureNode) {
+    const clone = $createAttributedTableStructureNode(node.__tagName, { ...node.__attributes });
+    node.getChildren().forEach((child) => clone.append(deepCloneLexicalNode(child)));
+    return clone;
+  }
+  if ($isLineBreakNode(node)) {
+    return $createLineBreakNode();
+  }
+  if ($isTextNode(node)) {
+    const clone = $createTextNode(node.getTextContent());
+    clone.setFormat(node.getFormat());
+    clone.setStyle(node.getStyle());
+    return clone;
+  }
+  // ParagraphNode, HeadingNode, or any other ElementNode — preserve children
+  if (typeof node.getChildren === 'function') {
+    const clone = $createParagraphNode();
+    node.getChildren().forEach((child) => clone.append(deepCloneLexicalNode(child)));
+    return clone;
+  }
+  // Unknown leaf — best-effort text copy
+  return $createTextNode(node.getTextContent?.() ?? '');
 }
 
 // ─── Plugin ──────────────────────────────────────────────────────────────────
@@ -225,9 +254,11 @@ export default function TableContextMenuPlugin() {
       });
     };
 
-    const onMouseUp = () => {
+    const onMouseUp = (e) => {
       root.style.userSelect = '';  // always restore
-      if (!isDraggingRef.current && !menuStateRef.current) {
+      // Right-click (button 2): mouseup fires before contextmenu, so the menu
+      // isn't open yet — skip clearing so the drag selection survives into openMenu.
+      if (!isDraggingRef.current && !menuStateRef.current && e.button !== 2) {
         clearCellSelection();
       }
       cellDragStartRef.current = null;
@@ -752,6 +783,20 @@ export default function TableContextMenuPlugin() {
     close();
   };
 
+  const duplicateColumn = (position) => {
+    if (!menu) return;
+    editor.update(() => {
+      getAllRows($getNodeByKey(menu.tableKey)).forEach((row) => {
+        const sourceCell = row.getChildren()[menu.colIndex];
+        if (!sourceCell) return;
+        const newCell = deepCloneLexicalNode(sourceCell);
+        if (position === 'left') sourceCell.insertBefore(newCell);
+        else sourceCell.insertAfter(newCell);
+      });
+    });
+    close();
+  };
+
   const deleteTable = () => {
     if (!menu) return;
     editor.update(() => { $getNodeByKey(menu.tableKey)?.remove(); });
@@ -1015,6 +1060,7 @@ export default function TableContextMenuPlugin() {
               data-submenu-panel="rowoptions"
               className={`lctm-submenu${openSubmenu === 'rowoptions' ? ' lctm-submenu-open' : ''}`}
             >
+              <button role="menuitem" className="lctm-item" onClick={toggleRowHeader}>Toggle Row Header</button>
               {/* Row Height */}
               <div className="lctm-has-sub">
                 <button
@@ -1042,7 +1088,6 @@ export default function TableContextMenuPlugin() {
                 </div>
               </div>
 
-              <button role="menuitem" className="lctm-item" onClick={toggleRowHeader}>Toggle Row Header</button>
               <button role="menuitem" className="lctm-item" onClick={() => insertRow('above')}>Insert Row Above</button>
               <button role="menuitem" className="lctm-item" onClick={() => insertRow('below')}>Insert Row Below</button>
               <div role="separator" className="lctm-sep" />
@@ -1069,6 +1114,7 @@ export default function TableContextMenuPlugin() {
               data-submenu-panel="columnoptions"
               className={`lctm-submenu${openSubmenu === 'columnoptions' ? ' lctm-submenu-open' : ''}`}
             >
+              <button role="menuitem" className="lctm-item" onClick={toggleCellHeader}>Toggle Column Header</button>
               {/* Column Width */}
               <div className="lctm-has-sub">
                 <button
@@ -1096,9 +1142,11 @@ export default function TableContextMenuPlugin() {
                 </div>
               </div>
 
-              <button role="menuitem" className="lctm-item" onClick={toggleCellHeader}>Toggle Column Header</button>
               <button role="menuitem" className="lctm-item" onClick={() => insertColumn('left')}>Insert Column Left</button>
               <button role="menuitem" className="lctm-item" onClick={() => insertColumn('right')}>Insert Column Right</button>
+
+              <button role="menuitem" className="lctm-item" onClick={() => duplicateColumn('left')}>Duplicate Column Left</button>
+              <button role="menuitem" className="lctm-item" onClick={() => duplicateColumn('right')}>Duplicate Column Right</button>
               <div role="separator" className="lctm-sep" />
               <button role="menuitem" className="lctm-item lctm-danger" onClick={deleteColumn}>Delete Column</button>
             </div>
