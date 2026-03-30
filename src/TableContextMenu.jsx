@@ -119,9 +119,6 @@ function getCellsInRect(tableEl, startCell, endCell) {
 export default function TableContextMenuPlugin() {
   const [editor] = useLexicalComposerContext();
 
-  /** The <td>/<th> DOM element the mouse is currently over (or null). */
-  const [hoveredCellEl, setHoveredCellEl] = useState(null);
-
   /** Open menu state, or null when closed. */
   const [menu, setMenu] = useState(null);
 
@@ -136,8 +133,7 @@ export default function TableContextMenuPlugin() {
   const [openSubmenu, setOpenSubmenu] = useState(null);
 
   const menuRef = useRef(null);       // ref to the menu DOM element
-  const triggerRef = useRef(null);    // ref to the ▾ trigger button DOM element
-  const lastCellRef = useRef(null);   // tracks hovered cell without causing extra renders
+  const lastCellRef = useRef(null);   // cell that was right-clicked (used by table ops)
   const menuStateRef = useRef(null);  // mirrors `menu` without causing effect re-runs
 
   // ── Drag-selection state ──────────────────────────────────────────────────
@@ -151,8 +147,6 @@ export default function TableContextMenuPlugin() {
   const close = useCallback(() => {
     setMenu(null);
     setOpenSubmenu(null);
-    // Return focus to the ▾ trigger so keyboard users can continue navigating
-    triggerRef.current?.focus();
   }, []);
 
   // Focus the first menuitem when the menu opens
@@ -164,48 +158,6 @@ export default function TableContextMenuPlugin() {
       });
     }
   }, [menu]);
-
-  // ── Mouse tracking (global — avoids "hover gap" between cell and trigger) ─
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (menuStateRef.current) return; // don't disturb state while menu is open
-
-      // If the mouse is over the trigger button itself, keep hover alive
-      if (triggerRef.current?.contains(e.target)) return;
-
-      const root = editor.getRootElement();
-      let cellEl = null;
-      if (root?.contains(e.target)) {
-        let el = e.target;
-        while (el && el !== root) {
-          const tag = el.tagName?.toLowerCase();
-          if (tag === 'td' || tag === 'th') { cellEl = el; break; }
-          el = el.parentElement;
-        }
-      }
-
-      if (cellEl !== lastCellRef.current) {
-        lastCellRef.current = cellEl;
-        setHoveredCellEl(cellEl);
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => document.removeEventListener('mousemove', handleMouseMove);
-  }, [editor]); // only depends on editor, not menu
-
-  // Hide the trigger button when the page scrolls (position would be stale)
-  useEffect(() => {
-    const hide = () => {
-      if (!menuStateRef.current) {
-        lastCellRef.current = null;
-        setHoveredCellEl(null);
-      }
-    };
-    window.addEventListener('scroll', hide, true);
-    return () => window.removeEventListener('scroll', hide, true);
-  }, []);
 
   // ── Drag cell selection ───────────────────────────────────────────────────
 
@@ -292,11 +244,11 @@ export default function TableContextMenuPlugin() {
     };
   }, [editor, clearCellSelection]);
 
-  // ── Open menu on trigger click ────────────────────────────────────────────
+  // ── Open menu on right-click ──────────────────────────────────────────────
 
-  const openMenu = useCallback(() => {
-    const cellEl = lastCellRef.current;
+  const openMenu = useCallback((clientX, clientY, cellEl) => {
     if (!cellEl) return;
+    lastCellRef.current = cellEl;
 
     let cellKey = null, rowKey = null, tableKey = null;
     let colIndex = 0, currentWidth = '65';
@@ -392,23 +344,38 @@ export default function TableContextMenuPlugin() {
     setCellSpacingValue(currentCellSpacing);
     setRowHeightValue(currentRowHeight);
     setColWidthValue(currentColWidth);
-    const rect = cellEl.getBoundingClientRect();
-    setMenu({ x: rect.right, y: rect.top + 18, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergeValid });
+    setMenu({ x: clientX, y: clientY, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergeValid });
   }, [editor]);
 
-  // ── Close on outside click or Escape ─────────────────────────────────────
+  // ── Right-click to open ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    const root = editor.getRootElement();
+    if (!root) return;
+    const onContextMenu = (e) => {
+      let el = e.target;
+      let cellEl = null;
+      while (el && el !== root) {
+        if (el.tagName === 'TD' || el.tagName === 'TH') { cellEl = el; break; }
+        el = el.parentElement;
+      }
+      if (!cellEl) return;
+      e.preventDefault();
+      openMenu(e.clientX, e.clientY, cellEl);
+    };
+    root.addEventListener('contextmenu', onContextMenu);
+    return () => root.removeEventListener('contextmenu', onContextMenu);
+  }, [editor, openMenu]);
+
+  // ── Close on outside click ────────────────────────────────────────────────
 
   useEffect(() => {
     if (!menu) return;
     const onMD = (e) => {
-      const inMenu = menuRef.current?.contains(e.target);
-      const inTrigger = triggerRef.current?.contains(e.target);
-      if (!inMenu && !inTrigger) close();
+      if (!menuRef.current?.contains(e.target)) close();
     };
     document.addEventListener('mousedown', onMD);
-    return () => {
-      document.removeEventListener('mousedown', onMD);
-    };
+    return () => document.removeEventListener('mousedown', onMD);
   }, [menu, close]);
 
   // ── Menu keyboard navigation ──────────────────────────────────────────────
@@ -855,34 +822,12 @@ export default function TableContextMenuPlugin() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  // Show trigger only when hovering a cell and no menu is open
-  const showTrigger = !!hoveredCellEl && !menu;
-
-  // Recompute cell rect on every render so it stays fresh after scrolling
-  const cellRect = hoveredCellEl ? hoveredCellEl.getBoundingClientRect() : null;
-
-  // Clamp menu to viewport (main menu is now ~160px tall with 3 groups + separator + merge)
-  const menuLeft = menu ? Math.min(menu.x - 210, window.innerWidth - 225) : 0;
-  const menuTop  = menu ? Math.min(menu.y,        window.innerHeight - 170) : 0;
+  // Clamp menu to viewport so it never bleeds off-screen
+  const menuLeft = menu ? Math.min(menu.x, window.innerWidth  - 225) : 0;
+  const menuTop  = menu ? Math.min(menu.y, window.innerHeight - 170) : 0;
 
   return createPortal(
     <>
-      {/* ▾ trigger button — appears at top-right of hovered cell */}
-      {showTrigger && cellRect && (
-        <button
-          ref={triggerRef}
-          className="lctm-trigger"
-          style={{ left: cellRect.right - 22, top: cellRect.top + 2 }}
-          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); openMenu(); }}
-          title="Table options"
-          aria-label="Table options"
-          aria-haspopup="menu"
-          aria-expanded={false}
-        >
-          ▾
-        </button>
-      )}
-
       {/* Dropdown menu */}
       {menu && (
         <div
