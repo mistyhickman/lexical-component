@@ -303,7 +303,6 @@ export default function TableContextMenuPlugin() {
     let currentBorder = '', currentCellPadding = '', currentCellSpacing = '';
     let currentRowHeight = '', currentColWidth = '';
     let gridSelectionCellKeys = null;
-    let isMergedCell = false;
     let isMergeValid = false;
 
     // Lexical stores the node key on each DOM element as __lexicalKey_<editorKey>.
@@ -354,17 +353,6 @@ export default function TableContextMenuPlugin() {
       const cellStyleObj = parseStyle(cellNode.__attributes?.style || '');
       currentColWidth = cellStyleObj['width']?.replace('px', '').trim() || '';
 
-      // Is this cell already merged? Works for both node types.
-      if (cellNode instanceof AttributedTableStructureNode) {
-        const cellAttrs = cellNode.__attributes || {};
-        const cs = parseInt(cellAttrs.colspan || '1', 10);
-        const rs = parseInt(cellAttrs.rowspan || '1', 10);
-        isMergedCell = cs > 1 || rs > 1;
-      } else if ($isTableCellNode(cellNode)) {
-        const cs = cellNode.__colSpan ?? 1;
-        const rs = cellNode.__rowSpan ?? 1;
-        isMergedCell = cs > 1 || rs > 1;
-      }
     });
 
     if (!rowKey || !tableKey) return;
@@ -405,7 +393,7 @@ export default function TableContextMenuPlugin() {
     setRowHeightValue(currentRowHeight);
     setColWidthValue(currentColWidth);
     const rect = cellEl.getBoundingClientRect();
-    setMenu({ x: rect.right, y: rect.top + 18, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergedCell, isMergeValid });
+    setMenu({ x: rect.right, y: rect.top + 18, cellKey, rowKey, tableKey, colIndex, gridSelectionCellKeys, isMergeValid });
   }, [editor]);
 
   // ── Close on outside click or Escape ─────────────────────────────────────
@@ -865,54 +853,6 @@ export default function TableContextMenuPlugin() {
     close();
   };
 
-  const unmergeCells = () => {
-    if (!menu?.isMergedCell) return;
-    editor.update(() => {
-      const cellNode = $getNodeByKey(menu.cellKey);
-      if (!cellNode || !$isTableCellNode(cellNode)) return;
-      const colSpan = cellNode.__colSpan ?? 1;
-      const rowSpan = cellNode.__rowSpan ?? 1;
-      if (colSpan <= 1 && rowSpan <= 1) return;
-
-      const tableNode = $getNodeByKey(menu.tableKey);
-      if (!tableNode) return;
-      const rows = getAllRows(tableNode);
-      const rowNode = $getNodeByKey(menu.rowKey);
-      if (!rowNode) return;
-
-      const cellRowIdx = rows.findIndex((r) => r.getKey() === rowNode.getKey());
-      const cellColIdx = rowNode.getChildren().findIndex((c) => c.getKey() === menu.cellKey);
-
-      // Reset spans on the original cell
-      const w = cellNode.getWritable();
-      w.setColSpan(1);
-      w.setRowSpan(1);
-
-      // Restore cells for column span (same row, insert after the original cell)
-      for (let c = 1; c < colSpan; c++) {
-        const newCell = $createTableCellNode(0);
-        newCell.append($createParagraphNode());
-        const ref = rowNode.getChildren()[cellColIdx + c - 1];
-        if (ref) ref.insertAfter(newCell);
-        else rowNode.append(newCell);
-      }
-
-      // Restore cells for row span (insert into subsequent rows)
-      for (let r = 1; r < rowSpan; r++) {
-        const targetRow = rows[cellRowIdx + r];
-        if (!targetRow) continue;
-        for (let c = 0; c < colSpan; c++) {
-          const newCell = $createTableCellNode(0);
-          newCell.append($createParagraphNode());
-          const ref = targetRow.getChildren()[cellColIdx + c];
-          if (ref) ref.insertBefore(newCell);
-          else targetRow.append(newCell);
-        }
-      }
-    });
-    close();
-  };
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   // Show trigger only when hovering a cell and no menu is open
@@ -1223,9 +1163,6 @@ export default function TableContextMenuPlugin() {
           >
             Merge Cells
           </button>
-          {menu?.isMergedCell && (
-            <button role="menuitem" className="lctm-item" onClick={unmergeCells}>Unmerge Cell</button>
-          )}
 
           <div role="separator" className="lctm-sep" />
 
