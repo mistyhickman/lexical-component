@@ -25,6 +25,7 @@ tr.lexical-table-row,
 }
 
 /* Table header cell styling */
+.lexical-content-editable th,
 th.lexical-table-cell-header,
 .lexical-table-cell-header {
   display: table-cell !important;
@@ -33,7 +34,7 @@ th.lexical-table-cell-header,
   background-color: #f0f0f0;
   font-weight: bold;
   text-align: center;
-  vertical-align: top;
+  vertical-align: middle !important; /* Override Lexical's inline vertical-align: top from TableCellNode.createDOM() */
   position: relative;
   outline: none;
   /* border and padding are intentionally omitted so the HTML border/cellpadding
@@ -62,6 +63,15 @@ td.lexical-table-cell,
   margin: 0;
   padding: 0;
   display: block;
+}
+
+/* Remove the .lexical-paragraph bottom margin inside th cells.
+   That 1em margin makes the block taller than the text, so vertical-align: middle
+   centers the enlarged box and the text ends up near the top visually. */
+.lexical-content-editable th .lexical-paragraph,
+th.lexical-table-cell-header .lexical-paragraph,
+.lexical-table-cell-header .lexical-paragraph {
+  margin: 0;
 }
 
 /* Empty table cell placeholder - ensures cells are visible even when empty */

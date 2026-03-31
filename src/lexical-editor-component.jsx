@@ -284,6 +284,15 @@ class LexicalEditorElement extends HTMLElement {
           margin: 0 0 1em 0 !important;
         }
 
+        /* Paragraphs inside table cells must have no margin so all cells
+           in a row share a consistent height. The 1em bottom margin that
+           normal paragraphs carry would inflate td/th height unevenly.
+           Uses a 3-class prefix (0,3,2) to beat the p rule above (0,2,1). */
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable th p,
+        .lexical-editor-container .lexical-editor-wrapper .lexical-content-editable td p {
+          margin: 0 !important;
+        }
+
         /* Headings: also lock size, weight, style, margin, and padding so
            application rules cannot push them into unexpected dimensions.
            Three-class prefix (.lexical-editor-container .lexical-editor-wrapper
